@@ -1,6 +1,11 @@
 """
 Precompute SwinIR-Large (real_sr, x4) outputs for every image in images.csv.
 
+Mirrors the EXACT rel_path from images.csv (relative to data_root) under
+processed_root/swinir_large/ -- same approach as run_realesrgan.py, see
+that file's docstring for why (works regardless of your on-disk subject
+folder naming/layout).
+
 Calls the *cloned* JingyunLiang/SwinIR repo's main_test_swinir.py as a
 subprocess. That script writes outputs to a fixed results/ subfolder with
 its own naming convention (commonly "<stem>_SwinIR.png" for --task real_sr,
@@ -13,6 +18,7 @@ Usage:
     python -m src.sr.run_swinir
     python -m src.sr.run_swinir --subjects 1 2 3
     python -m src.sr.run_swinir --limit 5
+    python -m src.sr.run_swinir --dry-run
 """
 from __future__ import annotations
 import argparse
@@ -20,6 +26,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
 import pandas as pd
 from tqdm import tqdm
 
@@ -33,22 +40,24 @@ def _find_output(results_dir: Path, stem: str) -> Path | None:
         cands = list(results_dir.rglob(f"{stem}{suf}"))
         if cands:
             return cands[0]
-    # last resort: anything starting with stem
     cands = list(results_dir.rglob(f"{stem}*"))
     return cands[0] if cands else None
 
 
-def run_one_subject(subject_id: int, filenames: list[str], src_subject_dir: Path,
-                     out_dir: Path, dry_run: bool = False):
-    out_dir.mkdir(parents=True, exist_ok=True)
-    todo = [f for f in filenames if not (out_dir / Path(f).with_suffix(".png")).exists()]
+def run_one_group(rel_paths: list[str], dry_run: bool = False):
+    """rel_paths: images.csv rel_path values that all share the same
+    parent folder (i.e. one subject's images)."""
+    out_root = CFG.processed_root / "swinir_large"
+
+    todo = [rp for rp in rel_paths if not (out_root / rp).with_suffix(".png").exists()]
     if not todo:
         return
 
     with tempfile.TemporaryDirectory() as tmp_in:
         tmp_in = Path(tmp_in)
-        for f in todo:
-            (tmp_in / f).symlink_to((src_subject_dir / f).resolve())
+        for rp in todo:
+            fname = Path(rp).name
+            (tmp_in / fname).symlink_to((CFG.data_root / rp).resolve())
 
         cmd = [
             str(CFG.swinir_python), "main_test_swinir.py",
@@ -65,19 +74,20 @@ def run_one_subject(subject_id: int, filenames: list[str], src_subject_dir: Path
             print(" ".join(cmd))
             return
 
-        proc = subprocess.run(cmd, cwd=str(CFG.swinir_repo), check=True,
-                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        subprocess.run(cmd, cwd=str(CFG.swinir_repo), check=True,
+                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
-        # main_test_swinir.py writes into <repo>/results/<task-specific-dir>/
         results_root = CFG.swinir_repo / "results"
-        for f in todo:
-            stem = Path(f).stem
+        for rp in todo:
+            stem = Path(rp).stem
             found = _find_output(results_root, stem)
             if found is None:
-                print(f"  [warn] no SwinIR output found for subject {subject_id} / {f} "
+                print(f"  [warn] no SwinIR output found for {rp} "
                       f"(looked under {results_root}). Check OUTPUT_GLOB_SUFFIXES.")
                 continue
-            shutil.move(str(found), str(out_dir / f"{stem}.png"))
+            out_path = (out_root / rp).with_suffix(".png")
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(found), str(out_path))
 
 
 def main():
@@ -95,27 +105,23 @@ def main():
         raise FileNotFoundError(
             f"{CFG.swinir_large_ckpt} not found. Run scripts/02_download_sr_checkpoints.sh first."
         )
+    if not CFG.images_csv.exists():
+        raise FileNotFoundError(
+            f"{CFG.images_csv} not found. Run scripts/03_build_metadata.sh first."
+        )
 
     df = pd.read_csv(CFG.images_csv)
-    subject_folder = {
-        sid: Path(rel).parts[1]
-        for sid, rel in df[["subject_id", "rel_path"]].drop_duplicates("subject_id").values
-    }
-
     subjects = sorted(df["subject_id"].unique())
     if args.subjects:
         subjects = [s for s in subjects if s in args.subjects]
 
-    out_root = CFG.processed_root / "swinir_large"
-    out_root.mkdir(parents=True, exist_ok=True)
+    (CFG.processed_root / "swinir_large").mkdir(parents=True, exist_ok=True)
 
     for sid in tqdm(subjects, desc="SwinIR-Large"):
-        sub_df = df[df["subject_id"] == sid]
-        filenames = [Path(rp).name for rp in sub_df["rel_path"]]
+        rel_paths = list(df[df["subject_id"] == sid]["rel_path"])
         if args.limit:
-            filenames = filenames[: args.limit]
-        src_dir = CFG.data_root / "images" / subject_folder[sid]
-        run_one_subject(sid, filenames, src_dir, out_root / str(sid), dry_run=args.dry_run)
+            rel_paths = rel_paths[: args.limit]
+        run_one_group(rel_paths, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

@@ -6,22 +6,22 @@
 paths:
   # ---- Raw dataset -----------------------------------------------------
   # Root of EarVN1.0 as downloaded from Mendeley Data
-  # (https://data.mendeley.com/datasets/yws3v3mwx3). Expected layout:
-  #   <data_root>/images/01/*.jpg   ... subject 01 (male)
-  #   <data_root>/images/02/*.jpg
+  # (https://data.mendeley.com/datasets/yws3v3mwx3). build_metadata.py
+  # auto-detects the on-disk layout, so EITHER of these works:
+  #   (a) <data_root>/<subject_folder>/*.jpg          (no "images" subdir)
+  #   (b) <data_root>/images/<subject_folder>/*.jpg    (with "images" subdir)
+  # Subject folder names can be "01", "001_", "001.ALI_HD", etc. -- only
+  # the LEADING NUMBER is used to determine subject id / gender, e.g.:
+  #   001.ALI_HD/*.jpg    -> subject_id=1
+  #   002.LeDuong_BL/*.jpg -> subject_id=2
   #   ...
-  #   <data_root>/images/98/*.jpg   ... last male subject
-  #   <data_root>/images/99/*.jpg   ... first female subject
-  #   ...
-  #   <data_root>/images/164/*.jpg  ... last female subject
-  # (subjects 01-98 = male, 99-164 = female, per the dataset's own
-  # documentation/paper — verify against the "readme" that ships with the
-  # Mendeley download before trusting this blindly.)
+  #   164.<name>/*.jpg    -> subject_id=164
   data_root: "./data/raw/EarVN1.0"
 
   # ---- Cached SR outputs -------------------------------------------------
   # Real-ESRGAN / SwinIR are expensive, so their x4 outputs are precomputed
-  # once and cached here (mirrors data_root's images/<subject>/<file> layout).
+  # once and cached here, mirroring data_root's exact on-disk layout
+  # (whatever that is -- see data_root's comment above).
   # Bicubic is cheap and is NOT cached — it's computed on the fly in the
   # Dataset class. Put this on a fast/large disk; full-res x4 PNGs for
   # ~28k images can take tens of GB per SR method.

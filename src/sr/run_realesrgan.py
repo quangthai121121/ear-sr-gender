@@ -1,18 +1,26 @@
 """
 Precompute Real-ESRGAN x4 outputs for every image in images.csv.
 
-This calls the *cloned* xinntao/Real-ESRGAN repo's inference_realesrgan.py
-as a subprocess (its own env/deps must be installed -- see
-scripts/01_clone_sr_repos.sh). We process one subject folder at a time so
-that output filenames never collide across subjects (the tool writes to a
-flat output folder), then move/rename results into:
+Mirrors the EXACT rel_path from images.csv (relative to data_root) under
+processed_root/realesrgan/, e.g.:
 
-    processed_root/realesrgan/<subject_id>/<original_filename>.png
+    data_root/001.ALI_HD/foo.jpg   -> processed_root/realesrgan/001.ALI_HD/foo.png
+
+This never tries to reconstruct subject folder names -- it reads rel_path
+straight from images.csv (written by build_metadata.py, which already
+resolved your actual on-disk layout) and mirrors it exactly. Works
+regardless of folder naming convention ("01", "001_", "001.ALI_HD", ...)
+or whether there's an "images/" subdirectory.
+
+We batch by source folder (all images sharing the same parent directory,
+i.e. one subject) so the underlying repo's flat output directory never
+has filename collisions across different subjects.
 
 Usage:
     python -m src.sr.run_realesrgan                 # all subjects
     python -m src.sr.run_realesrgan --subjects 1 2 3 # just a few (debug)
     python -m src.sr.run_realesrgan --limit 5        # first 5 images/subject (debug)
+    python -m src.sr.run_realesrgan --dry-run        # print the commands, do nothing
 """
 from __future__ import annotations
 import argparse
@@ -20,28 +28,27 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
 import pandas as pd
 from tqdm import tqdm
 
 from src.config import CFG
 
 
-def run_one_subject(subject_id: int, filenames: list[str], out_root: Path,
-                     dry_run: bool = False):
-    out_dir = out_root / f"{subject_id:02d}" if False else out_root / str(subject_id)
-    # NOTE: rel_path in images.csv already encodes the exact subject folder
-    # name (e.g. "images/01/xxx.jpg"); we mirror that folder name here.
-    src_subject_dir = CFG.data_root / "images" / _subject_folder_name(subject_id)
-    out_dir.mkdir(parents=True, exist_ok=True)
+def run_one_group(rel_paths: list[str], dry_run: bool = False):
+    """rel_paths: images.csv rel_path values that all share the same
+    parent folder (i.e. one subject's images)."""
+    out_root = CFG.processed_root / "realesrgan"
 
-    todo = [f for f in filenames if not (out_dir / Path(f).with_suffix(".png")).exists()]
+    todo = [rp for rp in rel_paths if not (out_root / rp).with_suffix(".png").exists()]
     if not todo:
         return  # already done (safe to re-run / resume)
 
     with tempfile.TemporaryDirectory() as tmp_in, tempfile.TemporaryDirectory() as tmp_out:
         tmp_in = Path(tmp_in)
-        for f in todo:
-            (tmp_in / f).symlink_to((src_subject_dir / f).resolve())
+        for rp in todo:
+            fname = Path(rp).name
+            (tmp_in / fname).symlink_to((CFG.data_root / rp).resolve())
 
         cmd = [
             str(CFG.realesrgan_python), "inference_realesrgan.py",
@@ -65,21 +72,15 @@ def run_one_subject(subject_id: int, filenames: list[str], out_root: Path,
                         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
         # Move outputs into our canonical structure, matched by stem.
-        for f in todo:
-            stem = Path(f).stem
+        for rp in todo:
+            stem = Path(rp).stem
             candidates = list(Path(tmp_out).glob(f"{stem}*.png"))
             if not candidates:
-                print(f"  [warn] no Real-ESRGAN output found for subject {subject_id} / {f}")
+                print(f"  [warn] no Real-ESRGAN output found for {rp}")
                 continue
-            shutil.move(str(candidates[0]), str(out_dir / f"{stem}.png"))
-
-
-def _subject_folder_name(subject_id: int) -> str:
-    """images.csv stores rel_path like 'images/01/xxx.jpg' -- subject folder
-    names are NOT necessarily zero-padded the same way everywhere, so we
-    resolve the actual on-disk folder name once via images.csv rather than
-    assuming zero-padding here."""
-    return _SUBJECT_FOLDER_CACHE[subject_id]
+            out_path = (out_root / rp).with_suffix(".png")
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(candidates[0]), str(out_path))
 
 
 def main():
@@ -99,27 +100,23 @@ def main():
         raise FileNotFoundError(
             f"{CFG.realesrgan_ckpt} not found. Run scripts/02_download_sr_checkpoints.sh first."
         )
+    if not CFG.images_csv.exists():
+        raise FileNotFoundError(
+            f"{CFG.images_csv} not found. Run scripts/03_build_metadata.sh first."
+        )
 
     df = pd.read_csv(CFG.images_csv)
-    global _SUBJECT_FOLDER_CACHE
-    _SUBJECT_FOLDER_CACHE = {
-        sid: Path(rel).parts[1]  # rel_path = "images/<folder>/<file>"
-        for sid, rel in df[["subject_id", "rel_path"]].drop_duplicates("subject_id").values
-    }
-
     subjects = sorted(df["subject_id"].unique())
     if args.subjects:
         subjects = [s for s in subjects if s in args.subjects]
 
-    out_root = CFG.processed_root / "realesrgan"
-    out_root.mkdir(parents=True, exist_ok=True)
+    (CFG.processed_root / "realesrgan").mkdir(parents=True, exist_ok=True)
 
     for sid in tqdm(subjects, desc="Real-ESRGAN"):
-        sub_df = df[df["subject_id"] == sid]
-        filenames = [Path(rp).name for rp in sub_df["rel_path"]]
+        rel_paths = list(df[df["subject_id"] == sid]["rel_path"])
         if args.limit:
-            filenames = filenames[: args.limit]
-        run_one_subject(sid, filenames, out_root, dry_run=args.dry_run)
+            rel_paths = rel_paths[: args.limit]
+        run_one_group(rel_paths, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
