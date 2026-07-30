@@ -17,7 +17,7 @@ paths:
   # (subjects 01-98 = male, 99-164 = female, per the dataset's own
   # documentation/paper — verify against the "readme" that ships with the
   # Mendeley download before trusting this blindly.)
-  data_root: "/data/EarVN1.0"
+  data_root: "./data/raw/EarVN1.0"
 
   # ---- Cached SR outputs -------------------------------------------------
   # Real-ESRGAN / SwinIR are expensive, so their x4 outputs are precomputed
@@ -25,7 +25,7 @@ paths:
   # Bicubic is cheap and is NOT cached — it's computed on the fly in the
   # Dataset class. Put this on a fast/large disk; full-res x4 PNGs for
   # ~28k images can take tens of GB per SR method.
-  processed_root: "/data/EarVN1.0_processed"
+  processed_root: "./data/processed"
   # -> processed_root/realesrgan/<subject>/<file>.png
   # -> processed_root/swinir_large/<subject>/<file>.png
 

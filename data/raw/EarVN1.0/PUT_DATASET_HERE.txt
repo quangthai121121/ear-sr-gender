@@ -1,0 +1,16 @@
+Giai nen bo du lieu EarVN1.0 vao day, sao cho co cau truc:
+
+  data/raw/EarVN1.0/images/01/*.jpg   (subject 01, nam)
+  data/raw/EarVN1.0/images/02/*.jpg
+  ...
+  data/raw/EarVN1.0/images/98/*.jpg   (subject 98, nam - subject nam cuoi)
+  data/raw/EarVN1.0/images/99/*.jpg   (subject 99, nu - subject nu dau)
+  ...
+  data/raw/EarVN1.0/images/164/*.jpg  (subject 164, nu - subject cuoi)
+
+Sau khi giai nen dung cho, KHONG can sua configs/paths.yaml (da tro san
+vao thu muc nay theo mac dinh). Neu ban de dataset o noi khac, sua
+paths.yaml -> paths.data_root cho khop.
+
+File nay chi la placeholder de Git/zip giu lai thu muc rong -- xoa di
+sau khi da giai nen dataset that vao day.
