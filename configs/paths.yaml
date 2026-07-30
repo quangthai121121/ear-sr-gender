@@ -62,6 +62,11 @@ sr:
 
   # SwinIR inference settings
   swinir_task: "real_sr"
+  swinir_scale: 4                # REQUIRED for real_sr: without --scale 4,
+                                  # the model is built for upscale=1 and its
+                                  # conv_up2 layer never gets created, which
+                                  # then fails to load the x4 checkpoint's
+                                  # conv_up2 weights.
   swinir_large_model: true       # --large_model flag -> SwinIR-L (not -M)
   swinir_tile: 400               # null/None = whole image, no tiling
 

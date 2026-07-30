@@ -62,6 +62,7 @@ def run_one_group(rel_paths: list[str], dry_run: bool = False):
         cmd = [
             str(CFG.swinir_python), "main_test_swinir.py",
             "--task", CFG.sr.swinir_task,
+            "--scale", str(CFG.sr.swinir_scale),
             "--model_path", str(CFG.swinir_large_ckpt),
             "--folder_lq", str(tmp_in),
         ]
