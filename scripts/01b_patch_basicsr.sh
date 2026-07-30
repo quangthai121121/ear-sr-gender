@@ -15,9 +15,14 @@ if [ ! -x "$VENV_PY" ]; then
   exit 1
 fi
 
-BASICSR_DIR=$("$VENV_PY" -c "import basicsr, os; print(os.path.dirname(basicsr.__file__))")
+# NOTE: we deliberately do NOT `import basicsr` to locate it -- doing so
+# executes basicsr/__init__.py, which is exactly what triggers the broken
+# `torchvision.transforms.functional_tensor` import we're trying to patch
+# (chicken-and-egg). Find it on disk instead.
+BASICSR_DIR=$(find external/Real-ESRGAN/.venv -maxdepth 6 -type d -name basicsr -path "*/site-packages/*" | head -n1)
 if [ -z "$BASICSR_DIR" ]; then
-  echo "ERROR: could not locate basicsr install. Is it installed in that venv?"
+  echo "ERROR: could not locate a basicsr install under external/Real-ESRGAN/.venv."
+  echo "Is it installed? Try: external/Real-ESRGAN/.venv/bin/pip show basicsr"
   exit 1
 fi
 
