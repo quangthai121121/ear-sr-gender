@@ -1,0 +1,81 @@
+# =============================================================================
+# CENTRAL PATH CONFIG — edit these paths to match your machine, then leave
+# every script alone. All code reads paths from here (see src/config.py).
+# =============================================================================
+
+paths:
+  # ---- Raw dataset -----------------------------------------------------
+  # Root of EarVN1.0 as downloaded from Mendeley Data
+  # (https://data.mendeley.com/datasets/yws3v3mwx3). Expected layout:
+  #   <data_root>/images/01/*.jpg   ... subject 01 (male)
+  #   <data_root>/images/02/*.jpg
+  #   ...
+  #   <data_root>/images/98/*.jpg   ... last male subject
+  #   <data_root>/images/99/*.jpg   ... first female subject
+  #   ...
+  #   <data_root>/images/164/*.jpg  ... last female subject
+  # (subjects 01-98 = male, 99-164 = female, per the dataset's own
+  # documentation/paper — verify against the "readme" that ships with the
+  # Mendeley download before trusting this blindly.)
+  data_root: "/data/EarVN1.0"
+
+  # ---- Cached SR outputs -------------------------------------------------
+  # Real-ESRGAN / SwinIR are expensive, so their x4 outputs are precomputed
+  # once and cached here (mirrors data_root's images/<subject>/<file> layout).
+  # Bicubic is cheap and is NOT cached — it's computed on the fly in the
+  # Dataset class. Put this on a fast/large disk; full-res x4 PNGs for
+  # ~28k images can take tens of GB per SR method.
+  processed_root: "/data/EarVN1.0_processed"
+  # -> processed_root/realesrgan/<subject>/<file>.png
+  # -> processed_root/swinir_large/<subject>/<file>.png
+
+  # ---- Metadata / splits (small CSVs, kept inside the repo) -------------
+  meta_root: "./data/meta"
+
+  # ---- Cloned SR repositories (see scripts/01_clone_sr_repos.sh) --------
+  # Each repo gets its own venv (their pinned deps, e.g. basicsr, can
+  # conflict with the classifier env) -- point *_python at that venv's
+  # interpreter. scripts/01_clone_sr_repos.sh creates these automatically.
+  realesrgan_repo: "./external/Real-ESRGAN"
+  realesrgan_python: "./external/Real-ESRGAN/.venv/bin/python"
+  swinir_repo: "./external/SwinIR"
+  swinir_python: "./external/SwinIR/.venv/bin/python"
+
+  # ---- SR model checkpoints (see scripts/02_download_sr_checkpoints.sh) -
+  realesrgan_ckpt: "./checkpoints/sr/realesrgan/RealESRGAN_x4plus.pth"
+  swinir_large_ckpt: "./checkpoints/sr/swinir/003_realSR_BSRGAN_DFOWMFC_s64w8_SwinIR-L_x4_GAN.pth"
+
+  # ---- Trained classifier checkpoints ------------------------------------
+  classifier_ckpt_root: "./checkpoints/classifiers"
+
+  # ---- Results / tables / logs -------------------------------------------
+  results_root: "./results"
+
+  # ---- Locked training config (written by scripts/06_hp_search.sh) ------
+  locked_config: "./configs/locked_config.yaml"
+
+sr:
+  # Real-ESRGAN inference settings (passed to the cloned repo's CLI)
+  realesrgan_model_name: "RealESRGAN_x4plus"
+  realesrgan_tile: 400           # 0 = no tiling; raise/lower for your GPU VRAM
+  realesrgan_fp32: true          # true = deterministic-ish, slower; false = fp16
+
+  # SwinIR inference settings
+  swinir_task: "real_sr"
+  swinir_large_model: true       # --large_model flag -> SwinIR-L (not -M)
+  swinir_tile: 400               # null/None = whole image, no tiling
+
+dataset:
+  # First N subject folders are male, remaining are female (per EarVN1.0 docs)
+  n_male_subjects: 98
+  n_total_subjects: 164
+  image_extensions: [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"]
+
+protocol_b:
+  n_folds: 5
+  val_fraction_of_train_subjects: 0.15   # per-fold, subject-level, stratified by gender
+  seed: 42
+
+protocol_a:
+  test_fraction: 0.5
+  seed: 42
