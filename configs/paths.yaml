@@ -55,6 +55,16 @@ paths:
   locked_config: "./configs/locked_config.yaml"
 
 sr:
+  # How many images share ONE subprocess call (= one model load onto GPU)
+  # during precompute. The dominant cost for tiny ear crops is NOT the
+  # per-image forward pass -- it's repeatedly reloading the SR checkpoint
+  # onto the GPU. One call per SUBJECT (as opposed to one call for many
+  # subjects' worth of images) means paying that load cost ~164 times
+  # instead of ~28 times. Raise this if you have enough tmp disk space
+  # and want fewer, larger batches; lower it if a crash mid-batch should
+  # lose less resumable progress.
+  precompute_batch_size: 1000
+
   # Real-ESRGAN inference settings (passed to the cloned repo's CLI)
   realesrgan_model_name: "RealESRGAN_x4plus"
   realesrgan_tile: 400           # 0 = no tiling; raise/lower for your GPU VRAM
@@ -88,6 +98,33 @@ dataset:
   n_male_subjects: 98
   n_total_subjects: 164
   image_extensions: [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"]
+
+  # If a native image's longer side is already >= this value, PadResize224
+  # would DOWNSCALE it anyway (no missing detail for SR to recover), so
+  # bicubic/realesrgan/swinir variants fall back to reading Original pixels
+  # directly for that image instead of running an SR/bicubic x4 pass that
+  # (a) has nothing genuine to add and (b) was measured to introduce a
+  # redundant-resize blur artifact that grows with native size (~23%
+  # sharpness loss at native short-side ~140px in our own tests).
+  #
+  # DEFAULT IS null (DISABLED) -- do not enable this for the MAIN Table 3 /
+  # Figure 2 benchmark. Doing so would force Delta_SR=0 by construction for
+  # every image at/above the threshold, turning an empirical question
+  # ("does SR help large crops?") into a circular assumption baked into the
+  # pipeline, AND it silently changes the experimental condition from
+  # "generic, unconditional SR preprocessing" (Eq. 1-4, matching the
+  # paper's stated methodology) into a different, size-adaptive
+  # preprocessing pipeline the paper doesn't claim to study.
+  #
+  # This flag exists ONLY for a clearly-labeled, SEPARATE robustness/
+  # sensitivity re-run: set it to 224, rerun scripts/08+09 into a different
+  # results/ subdirectory, and report it alongside (not instead of) the
+  # main unconditional-SR Table 3, e.g. "does the measured Delta_SR at
+  # native size >=224px survive once the redundant-resize confound is
+  # removed, or does it disappear -- consistent with SR having nothing to
+  # add there either way?" That framing keeps the large-size regime an
+  # empirical finding rather than an assumption.
+  skip_upsample_if_native_long_side_at_least: null
 
 protocol_b:
   n_folds: 5

@@ -1,16 +1,24 @@
-Giai nen bo du lieu EarVN1.0 vao day, sao cho co cau truc:
+Giai nen bo du lieu EarVN1.0 vao day, sao cho cac folder subject nam
+TRUC TIEP duoi thu muc nay (khong can thu muc "images/" trung gian), vi du:
 
-  data/raw/EarVN1.0/images/01/*.jpg   (subject 01, nam)
-  data/raw/EarVN1.0/images/02/*.jpg
+  data/raw/EarVN1.0/001.ALI_HD/*.jpg       (subject 1, nam)
+  data/raw/EarVN1.0/002.LeDuong_BL/*.jpg   (subject 2, nam)
   ...
-  data/raw/EarVN1.0/images/98/*.jpg   (subject 98, nam - subject nam cuoi)
-  data/raw/EarVN1.0/images/99/*.jpg   (subject 99, nu - subject nu dau)
+  data/raw/EarVN1.0/098.<ten>/*.jpg        (subject nam cuoi cung)
+  data/raw/EarVN1.0/099.<ten>/*.jpg        (subject nu dau tien)
   ...
-  data/raw/EarVN1.0/images/164/*.jpg  (subject 164, nu - subject cuoi)
+  data/raw/EarVN1.0/164.<ten>/*.jpg        (subject cuoi cung)
 
-Sau khi giai nen dung cho, KHONG can sua configs/paths.yaml (da tro san
-vao thu muc nay theo mac dinh). Neu ban de dataset o noi khac, sua
-paths.yaml -> paths.data_root cho khop.
+Ten folder co the la "01", "001_", "001.ALI_HD"... deu duoc -- code
+(src/data/build_metadata.py) tu dong doc SO DAU TIEN trong ten folder de
+xac dinh subject_id, phan con lai (".ALI_HD", "_"...) khong quan trong.
 
-File nay chi la placeholder de Git/zip giu lai thu muc rong -- xoa di
+Neu ban co thu muc "images/" trung gian (data_root/images/<subject>/...),
+code cung tu dong nhan dien duoc, khong can sua gi.
+
+Neu de dataset o day, KHONG can sua configs/paths.yaml (da tro san vao
+thu muc nay theo mac dinh). Neu de o noi khac, sua paths.yaml ->
+paths.data_root cho khop.
+
+File nay chi la placeholder de giu lai thu muc rong trong zip -- xoa di
 sau khi da giai nen dataset that vao day.

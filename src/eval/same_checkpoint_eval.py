@@ -24,6 +24,8 @@ from src.data.dataset import make_loader, IDX_TO_GENDER
 from src.train.models import build_model
 from src.eval.metrics import compute_metrics
 
+torch.backends.cudnn.benchmark = True  # fixed 224x224 input shape throughout
+
 VARIANTS = ["orig", "bicubic", "realesrgan", "swinir"]
 
 
@@ -42,11 +44,13 @@ def evaluate_variant(model, split_csv, split_name, variant, device, batch_size=3
     loader = make_loader(split_csv, split_name, variant=variant,
                           batch_size=batch_size, shuffle=False, return_meta=True)
     model.eval().to(device)
+    use_amp = device.type == "cuda"
 
     rows = []
     for x, y, image_id, short_side in loader:
-        x = x.to(device)
-        logits = model(x)
+        x = x.to(device, non_blocking=True)
+        with torch.autocast(device_type="cuda", enabled=use_amp):
+            logits = model(x)
         pred = logits.argmax(1).cpu().tolist()
         y = y.tolist()
         for iid, yt, yp, ss in zip(image_id, y, pred, short_side.tolist()):

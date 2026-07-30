@@ -16,6 +16,30 @@ PadResize224 = aspect-ratio-preserving resize so the longer side is 224,
 then zero-pad the shorter side to 224 (letterbox), then ImageNet normalize.
 This final geometry step is IDENTICAL across variants, which is what makes
 same-checkpoint evaluation across variants apples-to-apples.
+
+CONDITIONAL SKIP (configs/paths.yaml -> dataset.skip_upsample_if_native_long_side_at_least,
+DEFAULT: null / DISABLED):
+For any image whose native long side is already >= this threshold,
+PadResize224 would downscale it anyway -- there is no missing detail for
+SR/bicubic to add, and applying the explicit x4 step first only adds a
+redundant extra resize pass. We measured this compounding-resize artifact
+empirically: negligible for genuinely tiny crops (<0.5% sharpness loss
+around native short-side 16-45px) but growing substantial for larger crops
+(~23% sharpness loss at native short-side ~140px) -- and critically, it is
+NOT symmetric across variants (Original does one resize pass; Bicubic/SR
+do two), so it can bias Original-vs-SR comparisons for larger crops.
+
+IMPORTANT: this is disabled by default and should stay that way for the
+MAIN benchmark (Table 3 / Figure 2). Enabling it forces Delta_SR=0 by
+construction for every image at/above the threshold -- which would turn
+"does SR help large crops?" from an empirical question Figure 2 is meant
+to answer into a circular assumption baked into the data pipeline, and it
+silently swaps the studied condition from Eq. 1-4's unconditional SR
+preprocessing into a different, size-adaptive pipeline. Only enable this
+for a separately-reported robustness/sensitivity re-run (different
+results/ output dir), to check whether a measured Delta_SR at large native
+sizes survives once the redundant-resize confound is removed -- report it
+alongside the main table, never as a silent replacement for it.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -73,8 +97,9 @@ class EarGenderDataset(Dataset):
         images_df = pd.read_csv(images_csv)
         split_df = pd.read_csv(split_csv)
 
-        merged = split_df.merge(images_df[["image_id", "rel_path", "short_side"]],
-                                 on="image_id", how="left")
+        merged = split_df.merge(
+            images_df[["image_id", "rel_path", "short_side", "width", "height"]],
+            on="image_id", how="left")
         if merged["rel_path"].isna().any():
             missing = merged[merged["rel_path"].isna()]["image_id"].tolist()[:5]
             raise ValueError(f"{len(missing)}+ image_ids in split not found in images.csv, "
@@ -86,33 +111,51 @@ class EarGenderDataset(Dataset):
 
         self.variant = variant
         self.return_meta = return_meta
+        # None disables the skip entirely (always apply the explicit x4 step).
+        self.skip_threshold = CFG.dataset.skip_upsample_if_native_long_side_at_least
 
     def __len__(self):
         return len(self.df)
 
-    def _resolve_path(self, rel_path: str) -> Path:
-        if self.variant == "orig" or self.variant == "bicubic":
+    def _effective_variant(self, row) -> str:
+        """Returns the variant to actually USE for this specific image.
+        Falls back to 'orig' for bicubic/realesrgan/swinir when the native
+        long side is already >= skip_threshold (see module docstring) --
+        PadResize224 would downscale such images anyway, so there is no
+        missing detail for SR/bicubic to add, and skipping avoids a
+        redundant extra resize pass that we measured to bias Original-vs-SR
+        comparisons for larger crops."""
+        if self.variant == "orig" or self.skip_threshold is None:
+            return self.variant
+        native_long_side = max(row["width"], row["height"])
+        if native_long_side >= self.skip_threshold:
+            return "orig"
+        return self.variant
+
+    def _resolve_path(self, rel_path: str, effective_variant: str) -> Path:
+        if effective_variant == "orig" or effective_variant == "bicubic":
             return CFG.data_root / rel_path
-        elif self.variant in ("realesrgan", "swinir"):
-            root = CFG.variant_root(self.variant)
+        elif effective_variant in ("realesrgan", "swinir"):
+            root = CFG.variant_root(effective_variant)
             # cached SR outputs are saved as .png regardless of original ext
             return root / Path(rel_path).with_suffix(".png")
         else:
-            raise ValueError(f"Unknown variant: {self.variant}")
+            raise ValueError(f"Unknown variant: {effective_variant}")
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        path = self._resolve_path(row["rel_path"])
+        effective_variant = self._effective_variant(row)
+        path = self._resolve_path(row["rel_path"], effective_variant)
         if not path.exists():
             raise FileNotFoundError(
-                f"Missing pixel data for variant='{self.variant}': {path}\n"
+                f"Missing pixel data for variant='{effective_variant}': {path}\n"
                 f"If variant is 'realesrgan' or 'swinir', did you run "
                 f"scripts/05_precompute_sr.sh yet?"
             )
 
         img = Image.open(path).convert("RGB")
 
-        if self.variant == "bicubic":
+        if effective_variant == "bicubic":
             w, h = img.size
             img = img.resize((w * 4, h * 4), Image.BICUBIC)
         # realesrgan/swinir are already x4 on disk; orig needs no upsampling.
@@ -133,4 +176,8 @@ def make_loader(split_csv, split_name, variant, batch_size=32, shuffle=False,
     return torch.utils.data.DataLoader(
         ds, batch_size=batch_size, shuffle=shuffle,
         num_workers=num_workers, pin_memory=True, drop_last=False,
+        # Keep worker processes alive across epochs instead of respawning
+        # them every time (only valid when num_workers > 0). Saves
+        # repeated process-startup + dataset-repickling overhead per epoch.
+        persistent_workers=(num_workers > 0),
     )

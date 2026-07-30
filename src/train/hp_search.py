@@ -26,6 +26,8 @@ from src.data.dataset import make_loader
 from src.train.models import build_model
 from src.train.train import build_optimizer, run_epoch
 
+torch.backends.cudnn.benchmark = True  # fixed 224x224 input shape throughout
+
 GRID_MODELS = ["mobilenet_v2", "resnet50", "swin_t"]
 GRID_OPTIMIZERS = ["sgdm", "adamw"]
 GRID_LR = {"sgdm": [1e-2, 1e-3], "adamw": [1e-3, 1e-4]}
@@ -57,11 +59,13 @@ def main():
 
                 model = build_model(model_name, pretrained=True).to(device)
                 optimizer = build_optimizer(model, optimizer_name, lr, wd)
+                use_amp = device.type == "cuda"
+                scaler = torch.cuda.amp.GradScaler(enabled=use_amp) if use_amp else None
 
                 best_f1 = -1.0
                 for epoch in range(args.epochs):
-                    _, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True)
-                    _, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False)
+                    _, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
+                    _, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler)
                     best_f1 = max(best_f1, val_f1)
                     print(f"    epoch {epoch}: train_f1={train_f1:.4f} val_f1={val_f1:.4f}")
 

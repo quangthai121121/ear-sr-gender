@@ -172,8 +172,15 @@ After step 9, the paper's tables are at:
   open `external/SwinIR/main_test_swinir.py`, find the `cv2.imwrite(...)`
   call, and adjust that list.
 - **Tile sizes** (`configs/paths.yaml -> sr.realesrgan_tile / sr.swinir_tile`):
-  set to 400 by default to avoid GPU OOM on large source photos; increase
-  if you have headroom, decrease (or set null for SwinIR) if you hit OOM.
+  Real-ESRGAN defaults to 400 (safe for small ear crops). SwinIR's tiling
+  defaults to `null` (disabled) -- its tiling code has an edge-case bug
+  that crashes with `ValueError: range() arg 3 must not be zero` whenever
+  an image's shorter side exactly equals `tile_overlap` (32px default),
+  which is near-certain to occur somewhere across 28k images of varying
+  size. Since ear crops are small, running them whole (no tiling) is both
+  safe and simpler -- only re-enable `swinir_tile` if you have very large
+  source photos and hit GPU OOM, and expect it to still crash on any small
+  images mixed into the same run.
 - **Locked training config**: `src/train/hp_search.py` picks one
   optimizer/LR/WD by grid search on Protocol B fold 0's Original
   validation macro-F1 only (Section 3.4), then every Table 3/4/5 run uses

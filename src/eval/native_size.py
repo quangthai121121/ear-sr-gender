@@ -8,6 +8,19 @@ short_side per image from same_checkpoint_eval.py) and produces:
   results/table_native_size.csv
   results/figure2_native_size.png
 
+NOTE on the >=128 bucket: src/data/dataset.py CAN skip the explicit
+SR/bicubic x4 step (falling back to Original pixels) for images whose
+native long side is already large, via
+configs/paths.yaml -> dataset.skip_upsample_if_native_long_side_at_least
+-- but this is DISABLED BY DEFAULT (null) for the main benchmark, precisely
+so that this bucket reflects genuine measured SR effects rather than a
+value forced to zero by construction (see that config's comments for why).
+If you deliberately enable it for a separate robustness re-run, note that
+its threshold is based on LONG side while this bucketing uses SHORT side,
+so the two don't align exactly (e.g. a 130x180 crop has short_side>=128
+but long_side<224, so SR would still run normally for it even with the
+threshold enabled).
+
 Usage:
     python -m src.eval.native_size --tags resnet50_protoB_fold0 mobilenet_v2_protoB_fold0
     python -m src.eval.native_size --all

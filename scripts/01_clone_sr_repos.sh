@@ -22,6 +22,24 @@ pip install --upgrade pip
 pip install basicsr facexlib gfpgan
 pip install -r external/Real-ESRGAN/requirements.txt
 (cd external/Real-ESRGAN && python setup.py develop)
+
+# --- Known compatibility fix -------------------------------------------
+# basicsr (unmaintained since ~2022) imports
+# `torchvision.transforms.functional_tensor`, which was removed in
+# torchvision >= 0.17 (the function it needs, rgb_to_grayscale, still
+# exists, just moved to `torchvision.transforms.functional`). Without
+# this patch, inference_realesrgan.py fails immediately with:
+#   ModuleNotFoundError: No module named 'torchvision.transforms.functional_tensor'
+#
+# We locate basicsr on disk via `find` rather than `import basicsr` --
+# importing it is exactly what triggers the broken import chain we're
+# trying to patch (chicken-and-egg).
+BASICSR_DIR=$(find external/Real-ESRGAN/.venv -maxdepth 6 -type d -name basicsr -path "*/site-packages/*" | head -n1)
+if [ -n "$BASICSR_DIR" ]; then
+  echo "Patching basicsr at $BASICSR_DIR for torchvision >= 0.17 compatibility..."
+  grep -rl "torchvision.transforms.functional_tensor" "$BASICSR_DIR" 2>/dev/null \
+    | xargs -r sed -i 's/torchvision\.transforms\.functional_tensor/torchvision.transforms.functional/g'
+fi
 deactivate
 
 # ---------------------------------------------------------------------

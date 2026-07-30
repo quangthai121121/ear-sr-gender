@@ -31,6 +31,8 @@ from src.data.dataset import make_loader
 from src.train.models import build_model, MODEL_NAMES
 from src.train.train import build_optimizer, run_epoch
 
+torch.backends.cudnn.benchmark = True  # fixed 224x224 input shape throughout
+
 RUNS = [
     {"name": "orig_sgdm", "variant": "orig", "optimizer": "sgdm", "lr": 1e-3, "wd": 0.0},
     {"name": "realesrgan_adamw", "variant": "realesrgan", "optimizer": "adamw", "lr": 1e-4, "wd": 1e-4},
@@ -68,18 +70,20 @@ def main():
 
                 model = build_model(model_name, pretrained=True).to(device)
                 optimizer = build_optimizer(model, run["optimizer"], run["lr"], run["wd"])
+                use_amp = device.type == "cuda"
+                scaler = torch.cuda.amp.GradScaler(enabled=use_amp) if use_amp else None
 
                 for epoch in range(args.epochs):
-                    train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True)
+                    train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
                     print(f"    epoch {epoch}: train_loss={train_loss:.4f} train_f1={train_f1:.4f}")
 
-                _, test_f1 = run_epoch(model, test_loader, optimizer, device, train=False)
+                _, test_f1 = run_epoch(model, test_loader, optimizer, device, train=False, scaler=scaler)
                 # accuracy for Table 2 (matches paper's reporting for this table)
                 model.eval()
                 correct, total = 0, 0
                 with torch.no_grad():
                     for x, y in test_loader:
-                        x, y = x.to(device), y.to(device)
+                        x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
                         pred = model(x).argmax(1)
                         correct += (pred == y).sum().item()
                         total += y.size(0)

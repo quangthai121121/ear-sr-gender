@@ -27,6 +27,13 @@ from src.config import CFG
 from src.data.dataset import make_loader
 from src.train.models import build_model, MODEL_NAMES
 
+# All inputs are PadResize224'd to a FIXED 224x224 shape (see
+# src/data/dataset.py), so cuDNN can safely auto-tune the fastest
+# convolution algorithms for that exact shape once and reuse them for
+# every batch -- free speedup, no effect on results. (Would be unsafe /
+# counter-productive only if input shapes varied between batches.)
+torch.backends.cudnn.benchmark = True
+
 
 def build_optimizer(model, optimizer_name: str, lr: float, wd: float):
     optimizer_name = optimizer_name.lower()
@@ -47,20 +54,33 @@ def load_locked_config() -> dict:
         return yaml.safe_load(f)
 
 
-def run_epoch(model, loader, optimizer, device, train: bool):
+def run_epoch(model, loader, optimizer, device, train: bool, scaler=None):
+    """scaler: a torch.cuda.amp.GradScaler, or None to disable mixed precision
+    (e.g. on CPU, or if you hit numerical-stability issues with a
+    particular model/optimizer combo)."""
     model.train(train)
     criterion = nn.CrossEntropyLoss()
     total_loss, all_y, all_pred = 0.0, [], []
+    use_amp = scaler is not None and device.type == "cuda"
 
     with torch.set_grad_enabled(train):
         for x, y in loader:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
-            logits = model(x)
-            loss = criterion(logits, y)
+
+            with torch.autocast(device_type="cuda", enabled=use_amp):
+                logits = model(x)
+                loss = criterion(logits, y)
+
             if train:
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+                if use_amp:
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    optimizer.step()
+
             total_loss += loss.item() * x.size(0)
             all_y.extend(y.cpu().tolist())
             all_pred.extend(logits.argmax(1).cpu().tolist())
@@ -85,6 +105,10 @@ def main():
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--batch-size", type=int, default=None)
     ap.add_argument("--num-workers", type=int, default=4)
+    ap.add_argument("--amp", dest="amp", action="store_true", default=True,
+                     help="mixed precision training (default: on, CUDA only)")
+    ap.add_argument("--no-amp", dest="amp", action="store_false",
+                     help="disable mixed precision (e.g. if you hit NaN/instability)")
     args = ap.parse_args()
 
     CFG.ensure_dirs()
@@ -127,13 +151,17 @@ def main():
     model = build_model(args.model, pretrained=True).to(device)
     optimizer = build_optimizer(model, cfg["optimizer"], cfg["lr"], cfg["wd"])
 
+    use_amp = args.amp and device.type == "cuda"
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp) if use_amp else None
+    print(f"[train] mixed precision (AMP): {'ON' if use_amp else 'off'}")
+
     best_f1, best_state = -1.0, None
     history = []
     t0 = time.time()
 
     for epoch in range(cfg["epochs"]):
-        train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True)
-        val_loss, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False)
+        train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
+        val_loss, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler)
         history.append({"epoch": epoch, "train_loss": train_loss, "train_f1": train_f1,
                          "val_loss": val_loss, "val_f1": val_f1})
         print(f"  epoch {epoch:03d}  train_loss={train_loss:.4f} train_f1={train_f1:.4f}  "
