@@ -68,7 +68,20 @@ sr:
                                   # then fails to load the x4 checkpoint's
                                   # conv_up2 weights.
   swinir_large_model: true       # --large_model flag -> SwinIR-L (not -M)
-  swinir_tile: 400               # null/None = whole image, no tiling
+  swinir_tile: null              # null = no tiling (whole image at once).
+                                  # KEEP THIS NULL for EarVN1.0: ear crops
+                                  # are small, and main_test_swinir.py's
+                                  # tiling code has an edge-case bug that
+                                  # crashes with "range() arg 3 must not
+                                  # be zero" whenever an image's shorter
+                                  # side exactly equals tile_overlap
+                                  # (default 32px) -- a near-certainty
+                                  # somewhere across 28k images of varying
+                                  # size. Only set this if you have very
+                                  # large source photos and hit GPU OOM
+                                  # running them whole -- and even then,
+                                  # expect occasional crashes on small
+                                  # images mixed into the same dataset.
 
 dataset:
   # First N subject folders are male, remaining are female (per EarVN1.0 docs)
