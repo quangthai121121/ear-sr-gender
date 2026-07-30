@@ -64,8 +64,10 @@ def main():
 
                 best_f1 = -1.0
                 for epoch in range(args.epochs):
-                    _, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
-                    _, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler)
+                    _, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler,
+                                             desc=f"{model_name}/{optimizer_name}/lr={lr}/wd={wd} ep{epoch+1} [train]")
+                    _, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler,
+                                           desc=f"{model_name}/{optimizer_name}/lr={lr}/wd={wd} ep{epoch+1} [val]")
                     best_f1 = max(best_f1, val_f1)
                     print(f"    epoch {epoch}: train_f1={train_f1:.4f} val_f1={val_f1:.4f}")
 

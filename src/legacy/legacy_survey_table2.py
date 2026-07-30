@@ -74,10 +74,12 @@ def main():
                 scaler = torch.cuda.amp.GradScaler(enabled=use_amp) if use_amp else None
 
                 for epoch in range(args.epochs):
-                    train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
+                    train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler,
+                                                      desc=f"{model_name}/{run['name']} epoch {epoch+1}/{args.epochs} [train]")
                     print(f"    epoch {epoch}: train_loss={train_loss:.4f} train_f1={train_f1:.4f}")
 
-                _, test_f1 = run_epoch(model, test_loader, optimizer, device, train=False, scaler=scaler)
+                _, test_f1 = run_epoch(model, test_loader, optimizer, device, train=False, scaler=scaler,
+                                        desc=f"{model_name}/{run['name']} [test]")
                 # accuracy for Table 2 (matches paper's reporting for this table)
                 model.eval()
                 correct, total = 0, 0

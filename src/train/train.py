@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 import yaml
 from sklearn.metrics import f1_score
+from tqdm import tqdm
 
 from src.config import CFG
 from src.data.dataset import make_loader
@@ -54,7 +55,7 @@ def load_locked_config() -> dict:
         return yaml.safe_load(f)
 
 
-def run_epoch(model, loader, optimizer, device, train: bool, scaler=None):
+def run_epoch(model, loader, optimizer, device, train: bool, scaler=None, desc=""):
     """scaler: a torch.cuda.amp.GradScaler, or None to disable mixed precision
     (e.g. on CPU, or if you hit numerical-stability issues with a
     particular model/optimizer combo)."""
@@ -63,8 +64,9 @@ def run_epoch(model, loader, optimizer, device, train: bool, scaler=None):
     total_loss, all_y, all_pred = 0.0, [], []
     use_amp = scaler is not None and device.type == "cuda"
 
+    pbar = tqdm(loader, desc=desc, leave=False, unit="batch")
     with torch.set_grad_enabled(train):
-        for x, y in loader:
+        for x, y in pbar:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
             with torch.autocast(device_type="cuda", enabled=use_amp):
@@ -81,9 +83,11 @@ def run_epoch(model, loader, optimizer, device, train: bool, scaler=None):
                     loss.backward()
                     optimizer.step()
 
-            total_loss += loss.item() * x.size(0)
+            batch_loss = loss.item()
+            total_loss += batch_loss * x.size(0)
             all_y.extend(y.cpu().tolist())
             all_pred.extend(logits.argmax(1).cpu().tolist())
+            pbar.set_postfix(loss=f"{batch_loss:.4f}")
 
     n = len(all_y)
     macro_f1 = f1_score(all_y, all_pred, average="macro")
@@ -109,6 +113,9 @@ def main():
                      help="mixed precision training (default: on, CUDA only)")
     ap.add_argument("--no-amp", dest="amp", action="store_false",
                      help="disable mixed precision (e.g. if you hit NaN/instability)")
+    ap.add_argument("--patience", type=int, default=7,
+                     help="stop if val macro-F1 doesn't improve for this many "
+                          "consecutive epochs (0 disables early stopping)")
     args = ap.parse_args()
 
     CFG.ensure_dirs()
@@ -156,12 +163,16 @@ def main():
     print(f"[train] mixed precision (AMP): {'ON' if use_amp else 'off'}")
 
     best_f1, best_state = -1.0, None
+    epochs_since_improve = 0
     history = []
     t0 = time.time()
+    stopped_early_at = None
 
     for epoch in range(cfg["epochs"]):
-        train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler)
-        val_loss, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler)
+        train_loss, train_f1 = run_epoch(model, train_loader, optimizer, device, train=True, scaler=scaler,
+                                          desc=f"{tag} epoch {epoch+1}/{cfg['epochs']} [train]")
+        val_loss, val_f1 = run_epoch(model, val_loader, optimizer, device, train=False, scaler=scaler,
+                                      desc=f"{tag} epoch {epoch+1}/{cfg['epochs']} [val]")
         history.append({"epoch": epoch, "train_loss": train_loss, "train_f1": train_f1,
                          "val_loss": val_loss, "val_f1": val_f1})
         print(f"  epoch {epoch:03d}  train_loss={train_loss:.4f} train_f1={train_f1:.4f}  "
@@ -170,8 +181,18 @@ def main():
         if val_f1 > best_f1:
             best_f1 = val_f1
             best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            epochs_since_improve = 0
+        else:
+            epochs_since_improve += 1
+            if args.patience > 0 and epochs_since_improve >= args.patience:
+                stopped_early_at = epoch
+                print(f"  [train] early stopping: val macro-F1 hasn't improved for "
+                      f"{args.patience} epochs (best={best_f1:.4f} at epoch "
+                      f"{epoch - epochs_since_improve:03d})")
+                break
 
     elapsed = time.time() - t0
+    n_epochs_ran = len(history)
     ckpt_path = CFG.classifier_ckpt_root / f"{tag}.pt"
     torch.save({
         "model_name": args.model,
@@ -180,14 +201,19 @@ def main():
         "protocol": args.protocol,
         "fold": args.fold,
         "best_val_macro_f1": best_f1,
+        "stopped_early_at_epoch": stopped_early_at,
+        "n_epochs_ran": n_epochs_ran,
     }, ckpt_path)
 
     log_path = CFG.train_logs_dir / f"{tag}.json"
     with open(log_path, "w") as f:
         json.dump({"tag": tag, "config": cfg, "history": history,
-                    "elapsed_sec": elapsed, "best_val_macro_f1": best_f1}, f, indent=2)
+                    "elapsed_sec": elapsed, "best_val_macro_f1": best_f1,
+                    "stopped_early_at_epoch": stopped_early_at,
+                    "n_epochs_ran": n_epochs_ran}, f, indent=2)
 
-    print(f"[train] done in {elapsed/60:.1f} min. best val macro-F1={best_f1:.4f}")
+    print(f"[train] done in {elapsed/60:.1f} min ({n_epochs_ran}/{cfg['epochs']} epochs ran). "
+          f"best val macro-F1={best_f1:.4f}")
     print(f"[train] checkpoint -> {ckpt_path}")
     print(f"[train] log -> {log_path}")
 
