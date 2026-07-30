@@ -74,8 +74,16 @@ def run_one_group(rel_paths: list[str], dry_run: bool = False):
             print(" ".join(cmd))
             return
 
-        subprocess.run(cmd, cwd=str(CFG.swinir_repo), check=True,
-                        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        try:
+            subprocess.run(cmd, cwd=str(CFG.swinir_repo), check=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True)
+        except subprocess.CalledProcessError as e:
+            print(f"\n[run_swinir] FAILED (exit {e.returncode}). Full output:\n")
+            print(e.stdout)
+            print(f"\n[run_swinir] cmd: {' '.join(cmd)}")
+            print(f"[run_swinir] cwd: {CFG.swinir_repo}")
+            raise
 
         results_root = CFG.swinir_repo / "results"
         for rp in todo:

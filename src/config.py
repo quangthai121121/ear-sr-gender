@@ -28,11 +28,22 @@ def _load_raw(path: Path = _PATHS_YAML) -> dict:
 
 
 def _resolve(p: str) -> Path:
-    """Resolve a path relative to the repo root unless it's already absolute."""
+    """Resolve a path relative to the repo root unless it's already absolute.
+
+    IMPORTANT: this deliberately does NOT use Path.resolve() -- that
+    follows symlinks, and a venv's bin/python is typically a symlink to
+    the system interpreter (e.g. `python3 -m venv` on Debian/Ubuntu).
+    Resolving it away breaks venv isolation: subprocess would then run
+    the bare system Python, silently missing every package pip-installed
+    into that venv (basicsr, realesrgan, timm, ...), and fail with
+    ModuleNotFoundError deep inside the child process. Path.absolute()
+    (via os.path.normpath) keeps the symlink path intact instead.
+    """
     pp = Path(os.path.expanduser(p))
     if pp.is_absolute():
-        return pp
-    return (_REPO_ROOT / pp).resolve()
+        return Path(os.path.normpath(str(pp)))
+    combined = _REPO_ROOT / pp
+    return Path(os.path.normpath(str(combined)))
 
 
 class Config:
