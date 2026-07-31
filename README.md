@@ -195,7 +195,45 @@ After step 9, the paper's tables are at:
   per-pair exact McNemar tests; `src/eval/aggregate.py` applies Holm
   correction across *all* model×SR-variant tests found, per Section 4.4.
 
-## 5. Sanity checks worth running before trusting results
+## 5. Optional: matched-domain retraining (secondary analysis)
+
+Steps 1-9 answer "does inserting SR help an existing, Original-trained
+recognizer?" (same-checkpoint protocol) -- the main experiment. A
+different, complementary question is "if you retrain specifically for the
+SR domain (same locked optimizer, not re-tuned per variant), can the
+recognizer learn to work well there?" That's matched-domain retraining:
+
+```bash
+# Train (6 models x 5 folds x {realesrgan, swinir} = 60 extra runs -- costly)
+bash scripts/11_train_matched_domain.sh
+
+# Evaluate + aggregate into results/table_matched_domain.csv
+bash scripts/12_eval_matched_domain.sh
+```
+
+This is entirely opt-in and writes to separate files
+(`checkpoints/classifiers/*_retrain_*.pt`,
+`results/table_matched_domain_raw.csv`, `results/table_matched_domain.csv`)
+that the main same-checkpoint pipeline (steps 6-9) never reads from or
+writes to -- running this can't change your existing Table 3/4/5 results.
+
+For a single model/fold/variant instead of the full sweep:
+```bash
+python -m src.train.train --model resnet50 --protocol b --fold 0 \
+    --retrain --variant realesrgan
+python -m src.eval.same_checkpoint_eval --model resnet50 --protocol b --fold 0 \
+    --retrain --variant realesrgan
+```
+
+`results/table_matched_domain.csv` reports, per model, accuracy when
+trained AND tested on the same SR variant, alongside the gap versus that
+model's same-checkpoint Original baseline (`gap_vs_orig_baseline_pp`):
+roughly 0 suggests the same-checkpoint harm found in Table 3 is a
+representation-drift / domain-mismatch problem (the SR domain is still
+learnable); a persistent negative gap suggests SR is destroying signal
+that retraining can't recover.
+
+## 6. Sanity checks worth running before trusting results
 
 1. After step 3, `data/meta/subjects.csv` should show 98 male / 66 female
    subjects, and `images.csv` should total 28,412 rows.

@@ -1,11 +1,29 @@
 """
-Train one backbone on Original images only. The resulting checkpoint is
-later evaluated on Original/Bicubic/RealESRGAN/SwinIR test inputs by
-src/eval/same_checkpoint_eval.py -- SR is never seen during training,
-by design (Section 3.3, "same-checkpoint protocol").
+Train one backbone. Two modes, controlled by --retrain:
 
-Usage (Protocol B, fold 2, locked config):
+  --retrain not set (DEFAULT): same-checkpoint protocol (Section 3.3).
+      Trains on Original images only. The resulting checkpoint is later
+      evaluated on Original/Bicubic/RealESRGAN/SwinIR test inputs by
+      src/eval/same_checkpoint_eval.py -- SR is never seen during
+      training. This is the main experimental protocol.
+
+  --retrain set: matched-domain retraining (secondary analysis).
+      Trains on the SR/bicubic variant given by --variant instead of
+      Original. Answers a DIFFERENT question than same-checkpoint: "if
+      the recognizer is retrained specifically for the SR domain (same
+      locked optimizer/config, NOT re-tuned per variant -- that confound
+      is exactly what src/legacy/legacy_survey_table2.py's uncontrolled
+      Table 2 mixes in), can it learn to work well there?" Checkpoints
+      and results from this mode are kept in separate files from the
+      same-checkpoint results so they can never silently contaminate
+      Table 3.
+
+Usage (Protocol B, fold 2, locked config, same-checkpoint -- DEFAULT):
     python -m src.train.train --model resnet50 --protocol b --fold 2
+
+Usage (matched-domain retraining on Real-ESRGAN):
+    python -m src.train.train --model resnet50 --protocol b --fold 2 \
+        --retrain --variant realesrgan
 
 Usage (Protocol A, one-off, custom config -- used by the legacy survey):
     python -m src.train.train --model vgg19 --protocol a \
@@ -116,6 +134,15 @@ def main():
     ap.add_argument("--patience", type=int, default=7,
                      help="stop if val macro-F1 doesn't improve for this many "
                           "consecutive epochs (0 disables early stopping)")
+    ap.add_argument("--retrain", action="store_true",
+                     help="train on --variant instead of Original (matched-domain "
+                          "retraining, a secondary analysis -- see module docstring). "
+                          "Default: off (same-checkpoint protocol, trains on Original).")
+    ap.add_argument("--variant", default="orig",
+                     choices=["orig", "bicubic", "realesrgan", "swinir"],
+                     help="which variant to train on. Only used when --retrain is set; "
+                          "otherwise forced to 'orig' regardless of this flag, to keep "
+                          "the same-checkpoint protocol's meaning intact.")
     args = ap.parse_args()
 
     CFG.ensure_dirs()
@@ -133,24 +160,36 @@ def main():
             if k in cfg and v is not None:
                 cfg[k] = v
 
-    print(f"[train] model={args.model} protocol={args.protocol} fold={args.fold}")
+    # ---- retrain branching: same-checkpoint (default) vs matched-domain ----
+    # retrain=False -> ALWAYS train on Original, no matter what --variant was
+    # passed (protects the same-checkpoint protocol's meaning). retrain=True
+    # -> train on the requested --variant instead.
+    train_variant = args.variant if args.retrain else "orig"
+
+    print(f"[train] model={args.model} protocol={args.protocol} fold={args.fold} "
+          f"retrain={args.retrain} train_variant={train_variant}")
     print(f"[train] config={cfg}")
 
     # ---- data ----
     if args.protocol == "a":
         split_csv = CFG.protocol_a_csv
-        tag = args.tag or f"{args.model}_protoA"
+        base_tag = f"{args.model}_protoA"
     else:
         split_csv = CFG.protocol_b_csv(args.fold)
-        tag = args.tag or f"{args.model}_protoB_fold{args.fold}"
+        base_tag = f"{args.model}_protoB_fold{args.fold}"
 
-    train_loader = make_loader(split_csv, "train", variant="orig",
+    # Matched-domain checkpoints get a distinct tag so they can never
+    # collide with / silently overwrite a same-checkpoint baseline trained
+    # for the same model/protocol/fold.
+    tag = args.tag or (f"{base_tag}_retrain_{train_variant}" if args.retrain else base_tag)
+
+    train_loader = make_loader(split_csv, "train", variant=train_variant,
                                 batch_size=cfg["batch_size"], shuffle=True,
                                 num_workers=args.num_workers)
     val_split = "val" if args.protocol == "b" else "test"
     # Protocol A has no dedicated val split in this scaffold; if you need one,
     # add a --val-fraction option to src/data/splits.py's build_protocol_a.
-    val_loader = make_loader(split_csv, val_split, variant="orig",
+    val_loader = make_loader(split_csv, val_split, variant=train_variant,
                               batch_size=cfg["batch_size"], shuffle=False,
                               num_workers=args.num_workers)
 
@@ -203,6 +242,8 @@ def main():
         "best_val_macro_f1": best_f1,
         "stopped_early_at_epoch": stopped_early_at,
         "n_epochs_ran": n_epochs_ran,
+        "retrain": args.retrain,
+        "train_variant": train_variant,
     }, ckpt_path)
 
     log_path = CFG.train_logs_dir / f"{tag}.json"
@@ -210,7 +251,8 @@ def main():
         json.dump({"tag": tag, "config": cfg, "history": history,
                     "elapsed_sec": elapsed, "best_val_macro_f1": best_f1,
                     "stopped_early_at_epoch": stopped_early_at,
-                    "n_epochs_ran": n_epochs_ran}, f, indent=2)
+                    "n_epochs_ran": n_epochs_ran,
+                    "retrain": args.retrain, "train_variant": train_variant}, f, indent=2)
 
     print(f"[train] done in {elapsed/60:.1f} min ({n_epochs_ran}/{cfg['epochs']} epochs ran). "
           f"best val macro-F1={best_f1:.4f}")
