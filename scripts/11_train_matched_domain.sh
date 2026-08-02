@@ -24,10 +24,17 @@ fi
 MODELS=(vgg19 mobilenet_v2 resnet50 efficientnet_b0 swin_t maxvit_t)
 VARIANTS=(bicubic realesrgan swinir)
 N_FOLDS=$(python -c "from src.config import CFG; print(CFG.protocol_b.n_folds)")
+CKPT_DIR=$(python -c "from src.config import CFG; print(CFG.classifier_ckpt_root)")
 
 for model in "${MODELS[@]}"; do
   for variant in "${VARIANTS[@]}"; do
     for ((fold=0; fold<N_FOLDS; fold++)); do
+      tag="${model}_protoB_fold${fold}_retrain_${variant}"
+      ckpt_path="${CKPT_DIR}/${tag}.pt"
+      if [ -f "$ckpt_path" ]; then
+        echo "[skip] $tag (checkpoint already exists -- delete it if you want to retrain)"
+        continue
+      fi
       echo ""
       echo "=================================================================="
       echo "Matched-domain: $model / $variant / fold $fold"

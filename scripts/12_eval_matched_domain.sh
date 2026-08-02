@@ -12,10 +12,18 @@ fi
 MODELS=(vgg19 mobilenet_v2 resnet50 efficientnet_b0 swin_t maxvit_t)
 VARIANTS=(bicubic realesrgan swinir)
 N_FOLDS=$(python -c "from src.config import CFG; print(CFG.protocol_b.n_folds)")
+PRED_DIR=$(python -c "from src.config import CFG; print(CFG.predictions_dir)")
 
 for model in "${MODELS[@]}"; do
   for variant in "${VARIANTS[@]}"; do
     for ((fold=0; fold<N_FOLDS; fold++)); do
+      tag="${model}_protoB_fold${fold}_retrain_${variant}"
+      pred_path="${PRED_DIR}/${tag}__${variant}.csv"
+      if [ -f "$pred_path" ]; then
+        echo "[skip] $tag (already evaluated -- delete ${pred_path} and its row in "
+        echo "       results/table_matched_domain_raw.csv if you want to re-run it)"
+        continue
+      fi
       echo ""
       echo "== Matched-domain eval: $model / $variant / fold $fold =="
       python -m src.eval.same_checkpoint_eval --model "$model" --protocol b --fold "$fold" \
