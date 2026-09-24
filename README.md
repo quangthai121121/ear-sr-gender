@@ -233,6 +233,23 @@ representation-drift / domain-mismatch problem (the SR domain is still
 learnable); a persistent negative gap suggests SR is destroying signal
 that retraining can't recover.
 
+## 5b. Revision experiments (DASA'26 review)
+
+```bash
+# Protocol A re-run with a held-out val split. The original Protocol A runs
+# early-stop on TEST (no val split exists). Same test half, new tags
+# <model>_protoAV -> results/table4_protocolAV_vs_B.csv
+bash scripts/13_protocol_a_val.sh
+
+# Label-free test-time adaptation of the Original-trained Protocol B
+# checkpoints to SR inputs (logit-prior matching, AdaBN), geometry-shortcut
+# logistic regression, and paired statistics for the matched-domain gaps
+bash scripts/14_shift_adaptation.sh
+
+# Paired statistics alone (CPU, works on any results folder)
+python -m src.eval.paired_stats --results-root ./result-ear-sr-gender
+```
+
 ## 6. Sanity checks worth running before trusting results
 
 1. After step 3, `data/meta/subjects.csv` should show 98 male / 66 female
