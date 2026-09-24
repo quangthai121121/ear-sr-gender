@@ -55,6 +55,31 @@ def build_protocol_a(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Protocol AV: Protocol A with a held-out validation split.
+# ---------------------------------------------------------------------------
+def build_protocol_av(a_df: pd.DataFrame) -> pd.DataFrame:
+    """Carve an image-level validation split out of Protocol A's TRAIN half
+    (stratified by gender). The TEST half is left untouched, so Protocol AV
+    results are directly comparable to Protocol A on the same test images --
+    the only change is that early stopping no longer looks at test."""
+    val_frac = CFG.protocol_a.val_fraction_of_train
+    seed = CFG.protocol_a.seed
+
+    train = a_df[a_df["split"] == "train"]
+    _, val_ids = train_test_split(
+        train["image_id"],
+        test_size=val_frac,
+        random_state=seed,
+        stratify=train["gender"],
+    )
+    val_ids = set(val_ids)
+
+    out = a_df.copy()
+    out.loc[out["image_id"].isin(val_ids), "split"] = "val"
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Protocol B: subject-disjoint, 5-fold stratified group CV.
 # ---------------------------------------------------------------------------
 def build_protocol_b(df: pd.DataFrame):
@@ -111,7 +136,7 @@ def _print_split_summary(name: str, split_df: pd.DataFrame):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--protocol", choices=["a", "b", "both"], default="both")
+    ap.add_argument("--protocol", choices=["a", "av", "b", "both"], default="both")
     args = ap.parse_args()
 
     CFG.ensure_dirs()
@@ -121,6 +146,16 @@ def main():
         a_df = build_protocol_a(df)
         a_df.to_csv(CFG.protocol_a_csv, index=False)
         _print_split_summary(f"Protocol A -> {CFG.protocol_a_csv}", a_df)
+
+    if args.protocol == "av":
+        # Build from the EXISTING protocol_a.csv so the test half is exactly
+        # the one the published Protocol A numbers were measured on.
+        if not CFG.protocol_a_csv.exists():
+            raise FileNotFoundError(
+                f"{CFG.protocol_a_csv} not found. Run `--protocol a` first.")
+        av_df = build_protocol_av(pd.read_csv(CFG.protocol_a_csv))
+        av_df.to_csv(CFG.protocol_av_csv, index=False)
+        _print_split_summary(f"Protocol AV -> {CFG.protocol_av_csv}", av_df)
 
     if args.protocol in ("b", "both"):
         fold_frames = build_protocol_b(df)

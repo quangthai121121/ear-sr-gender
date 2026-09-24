@@ -134,3 +134,9 @@ protocol_b:
 protocol_a:
   test_fraction: 0.5
   seed: 42
+  # Protocol "av" = Protocol A with a held-out validation split carved from
+  # Protocol A's TRAIN images (image-level, stratified by gender). The TEST
+  # half is identical to protocol_a.csv. Used to re-run Protocol A without
+  # early-stopping on the test set (the original Protocol A runs used
+  # test as val -- see src/train/train.py).
+  val_fraction_of_train: 0.1

@@ -75,6 +75,7 @@ class Config:
         self.subjects_csv = self.meta_root / "subjects.csv"
         self.splits_dir = self.meta_root / "splits"
         self.protocol_a_csv = self.splits_dir / "protocol_a.csv"
+        self.protocol_av_csv = self.splits_dir / "protocol_a_val.csv"
 
         def protocol_b_csv(fold: int) -> Path:
             return self.splits_dir / f"protocol_b_fold{fold}.csv"

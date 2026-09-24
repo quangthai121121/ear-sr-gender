@@ -115,7 +115,11 @@ def run_epoch(model, loader, optimizer, device, train: bool, scaler=None, desc="
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, choices=MODEL_NAMES)
-    ap.add_argument("--protocol", required=True, choices=["a", "b"])
+    ap.add_argument("--protocol", required=True, choices=["a", "av", "b"],
+                     help="a = legacy image-level split (early-stops on TEST, kept only "
+                          "to reproduce the published Protocol A numbers); av = same "
+                          "split but early-stops on a val subset of A's train half; "
+                          "b = subject-disjoint folds")
     ap.add_argument("--fold", type=int, default=0, help="only used for protocol b")
     ap.add_argument("--tag", default=None, help="override checkpoint filename tag")
 
@@ -174,6 +178,9 @@ def main():
     if args.protocol == "a":
         split_csv = CFG.protocol_a_csv
         base_tag = f"{args.model}_protoA"
+    elif args.protocol == "av":
+        split_csv = CFG.protocol_av_csv
+        base_tag = f"{args.model}_protoAV"
     else:
         split_csv = CFG.protocol_b_csv(args.fold)
         base_tag = f"{args.model}_protoB_fold{args.fold}"
@@ -186,9 +193,9 @@ def main():
     train_loader = make_loader(split_csv, "train", variant=train_variant,
                                 batch_size=cfg["batch_size"], shuffle=True,
                                 num_workers=args.num_workers)
-    val_split = "val" if args.protocol == "b" else "test"
-    # Protocol A has no dedicated val split in this scaffold; if you need one,
-    # add a --val-fraction option to src/data/splits.py's build_protocol_a.
+    # Protocol A has no val split, so it early-stops on TEST (optimistic);
+    # use --protocol av for a Protocol A run with a proper held-out val.
+    val_split = "test" if args.protocol == "a" else "val"
     val_loader = make_loader(split_csv, val_split, variant=train_variant,
                               batch_size=cfg["batch_size"], shuffle=False,
                               num_workers=args.num_workers)

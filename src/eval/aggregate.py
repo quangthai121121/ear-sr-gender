@@ -64,15 +64,17 @@ def aggregate_table3():
     print()
 
 
-def aggregate_table4():
+def aggregate_table4(protocol_a: str = "a"):
+    """protocol_a="a": published Protocol A (early-stopped on test).
+    protocol_a="av": Protocol A re-run with a held-out val split."""
     raw_path = CFG.results_root / "table3_same_checkpoint_raw.csv"
     if not raw_path.exists():
         return
     df = pd.read_csv(raw_path)
-    a = df[df["protocol"] == "a"]
+    a = df[df["protocol"] == protocol_a]
     b = df[df["protocol"] == "b"]
     if a.empty or b.empty:
-        print("[table4] need both protocol='a' and protocol='b' rows, skipping.")
+        print(f"[table4] need both protocol='{protocol_a}' and protocol='b' rows, skipping.")
         return
 
     b_agg = (b.groupby(["model", "variant"])
@@ -89,7 +91,8 @@ def aggregate_table4():
         lambda r: f"{100*r.f1_b_mean:.2f}±{100*(r.f1_b_std or 0):.2f}", axis=1)
     merged["a_to_b_gap_pp"] = merged["acc_a_pct"] - 100 * merged["acc_b_mean"]
 
-    out_path = CFG.results_root / "table4_protocolA_vs_B.csv"
+    suffix = "A" if protocol_a == "a" else protocol_a.upper()
+    out_path = CFG.results_root / f"table4_protocol{suffix}_vs_B.csv"
     merged[["model", "variant", "acc_a_pct", "acc_b_str", "f1_b_str", "a_to_b_gap_pp"]].to_csv(
         out_path, index=False)
     print(f"[table4] wrote {out_path}\n")
@@ -104,6 +107,9 @@ def aggregate_table5():
         print(f"[table5] {raw_path} not found, skipping.")
         return
     df = pd.read_csv(raw_path)
+    # Protocol AV re-runs are reported separately and must not change the
+    # size of the published Holm family (Protocol A + B, all 3 variants).
+    df = df[~df["tag"].str.contains("_protoAV")]
 
     # Holm correction across ALL model x SR tests reported together.
     reject, p_adj, _, _ = multipletests(df["mcnemar_p"], method="holm")
@@ -223,7 +229,8 @@ def aggregate_matched_domain():
 
 def main():
     aggregate_table3()
-    aggregate_table4()
+    aggregate_table4("a")
+    aggregate_table4("av")
     aggregate_table5()
     aggregate_matched_domain()
 

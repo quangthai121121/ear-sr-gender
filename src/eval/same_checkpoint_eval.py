@@ -83,8 +83,9 @@ def resolve_tag(args) -> str:
     if args.model is None or args.protocol is None:
         raise ValueError("Pass either --tag, or --model + --protocol (+ --fold, "
                           "+ --retrain/--variant for a matched-domain checkpoint).")
-    base_tag = (f"{args.model}_protoA" if args.protocol == "a"
-                else f"{args.model}_protoB_fold{args.fold}")
+    base_tag = {"a": f"{args.model}_protoA",
+                "av": f"{args.model}_protoAV"}.get(args.protocol,
+                                                   f"{args.model}_protoB_fold{args.fold}")
     if args.retrain:
         return f"{base_tag}_retrain_{args.variant}"
     return base_tag
@@ -96,7 +97,7 @@ def main():
                      help="checkpoint tag as saved by train.py, e.g. resnet50_protoB_fold0 "
                           "or resnet50_protoB_fold0_retrain_realesrgan")
     ap.add_argument("--model", default=None)
-    ap.add_argument("--protocol", default=None, choices=["a", "b"])
+    ap.add_argument("--protocol", default=None, choices=["a", "av", "b"])
     ap.add_argument("--fold", type=int, default=0)
     ap.add_argument("--retrain", action="store_true",
                      help="only used to help reconstruct --tag when --tag isn't "
@@ -123,7 +124,8 @@ def main():
     # --retrain existed (they're always same-checkpoint / retrain=False).
     ckpt_retrain = ckpt.get("retrain", False)
     ckpt_train_variant = ckpt.get("train_variant", "orig")
-    split_csv = CFG.protocol_a_csv if protocol == "a" else CFG.protocol_b_csv(fold)
+    split_csv = {"a": CFG.protocol_a_csv,
+                 "av": CFG.protocol_av_csv}.get(protocol) or CFG.protocol_b_csv(fold)
 
     if args.variants is not None:
         variants_to_test = args.variants
