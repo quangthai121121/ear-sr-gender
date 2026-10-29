@@ -47,7 +47,8 @@ def _find_output(results_dir: Path, stem: str) -> Path | None:
     return cands[0] if cands else None
 
 
-def run_one_batch(rel_paths: list[str], out_root: Path, dry_run: bool = False):
+def run_one_batch(rel_paths: list[str], out_root: Path, dry_run: bool = False,
+                  tile: int | None = None):
     """rel_paths: images.csv rel_path values (can span many subjects)."""
     todo = [rp for rp in rel_paths if not (out_root / rp).with_suffix(".png").exists()]
     if not todo:
@@ -70,8 +71,9 @@ def run_one_batch(rel_paths: list[str], out_root: Path, dry_run: bool = False):
         ]
         if CFG.sr.swinir_large_model:
             cmd += ["--large_model"]
-        if CFG.sr.swinir_tile:
-            cmd += ["--tile", str(CFG.sr.swinir_tile)]
+        tile = tile or CFG.sr.swinir_tile
+        if tile:
+            cmd += ["--tile", str(tile)]
 
         if dry_run:
             print(" ".join(cmd))
@@ -117,6 +119,15 @@ def main():
     ap.add_argument("--batch-size", type=int, default=None,
                      help="override configs/paths.yaml -> sr.precompute_batch_size")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--tile", type=int, default=None,
+                     help="tiled inference for this run only (multiple of 8, e.g. 256); "
+                          "use together with --min-long-side for the large images that run "
+                          "out of GPU memory untiled, since tiling small crops can hit the "
+                          "tile-overlap bug described in configs/paths.yaml")
+    ap.add_argument("--min-long-side", type=int, default=None,
+                     help="only process images whose native long side is >= this")
+    ap.add_argument("--max-long-side", type=int, default=None,
+                     help="only process images whose native long side is < this")
     args = ap.parse_args()
 
     if not CFG.swinir_repo.exists():
@@ -137,6 +148,11 @@ def main():
         df = df[df["subject_id"].isin(args.subjects)]
     if args.limit:
         df = df.groupby("subject_id", group_keys=False).head(args.limit)
+    long_side = df[["width", "height"]].max(axis=1)
+    if args.min_long_side is not None:
+        df = df[long_side >= args.min_long_side]
+    if args.max_long_side is not None:
+        df = df[long_side.loc[df.index] < args.max_long_side]
 
     # Skip images that src/data/dataset.py will bypass to Original anyway
     # (native long side already >= the skip threshold -- see
@@ -162,7 +178,7 @@ def main():
           f"subjects -> {len(batches)} batch(es) of up to {batch_size} images")
 
     for batch in tqdm(batches, desc="SwinIR-Large batches"):
-        run_one_batch(batch, out_root, dry_run=args.dry_run)
+        run_one_batch(batch, out_root, dry_run=args.dry_run, tile=args.tile)
 
 
 if __name__ == "__main__":
