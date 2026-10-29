@@ -1,0 +1,15 @@
+# Cross-dataset evaluation on AWE (Annotated Web Ears: 1,000 images of 100
+# subjects, gender in each subject's annotations.json).
+# Inherits everything (SR repos, SR checkpoints, classifier checkpoints,
+# locked config) from paths.yaml and only redirects the data, metadata,
+# SR cache and results, so EarVN1.0 files are never touched.
+#
+# Select it with:  EAR_SR_CONFIG=configs/paths_awe.yaml python -m ...
+base: paths.yaml
+
+paths:
+  # EDIT THIS: folder that directly contains AWE's 001/ ... 100/ subject folders
+  data_root: "./data/raw/AWE"
+  processed_root: "./data/processed_awe"
+  meta_root: "./data/meta_awe"
+  results_root: "./results_awe"

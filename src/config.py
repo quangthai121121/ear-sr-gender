@@ -15,7 +15,11 @@ from types import SimpleNamespace
 import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_PATHS_YAML = _REPO_ROOT / "configs" / "paths.yaml"
+# EAR_SR_CONFIG selects an alternative config (e.g. configs/paths_awe.yaml for
+# the cross-dataset AWE evaluation); unset -> the default EarVN1.0 config.
+_PATHS_YAML = Path(os.environ.get("EAR_SR_CONFIG", _REPO_ROOT / "configs" / "paths.yaml"))
+if not _PATHS_YAML.is_absolute():
+    _PATHS_YAML = _REPO_ROOT / _PATHS_YAML
 
 
 def _load_raw(path: Path = _PATHS_YAML) -> dict:
@@ -24,7 +28,19 @@ def _load_raw(path: Path = _PATHS_YAML) -> dict:
             f"Config not found at {path}. Did you rename/move configs/paths.yaml?"
         )
     with open(path, "r") as f:
-        return yaml.safe_load(f)
+        raw = yaml.safe_load(f)
+    # An override config names its parent with `base:` and only lists the
+    # keys it changes; everything else is inherited from the parent.
+    base = raw.pop("base", None)
+    if base is None:
+        return raw
+    merged = _load_raw(path.parent / base)
+    for section, values in raw.items():
+        if isinstance(values, dict):
+            merged.setdefault(section, {}).update(values)
+        else:
+            merged[section] = values
+    return merged
 
 
 def _resolve(p: str) -> Path:
