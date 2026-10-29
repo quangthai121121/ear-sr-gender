@@ -1,0 +1,98 @@
+\relax 
+\citation{emersic2017,pflug2012}
+\citation{lei2013}
+\citation{khorsandi2013}
+\citation{vgg}
+\citation{nguyenquoc2020}
+\citation{hoang2019earvn}
+\citation{realesrgan}
+\citation{swinir}
+\citation{emersic2017,pflug2012}
+\citation{hassaballah2019}
+\citation{lei2013}
+\citation{khorsandi2013}
+\citation{hoang2019earvn}
+\citation{nguyenquoc2020}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\citation{realesrgan}
+\citation{swinir}
+\citation{dai2016}
+\citation{pei2021}
+\citation{grm2020}
+\citation{markicevic2023}
+\citation{hoang2019earvn}
+\citation{realesrgan}
+\citation{swinir}
+\citation{saerens2002}
+\citation{li2018adabn}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{}\protected@file@percent }
+\newlabel{sec:related}{{II}{2}{}{section.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Experimental Setup}{2}{}\protected@file@percent }
+\newlabel{sec:setup}{{III}{2}{}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Dataset and protocols}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Dataset and protocol statistics.}}{2}{}\protected@file@percent }
+\newlabel{tab:dataset}{{I}{2}{}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Input variants and preprocessing}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Evaluation protocols for SR}{2}{}\protected@file@percent }
+\newlabel{sec:protocols}{{\mbox  {III-C}}{2}{}{subsection.3.3}{}}
+\citation{vgg}
+\citation{mobilenetv2}
+\citation{resnet}
+\citation{efficientnet}
+\citation{swintransformer}
+\citation{maxvit}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Preliminary legacy-recipe survey on Protocol A (accuracy, \%). SR columns are uncontrolled: they also switch the optimizer to AdamW with weight decay $10^{-4}$.}}{3}{}\protected@file@percent }
+\newlabel{tab:legacy}{{II}{3}{}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Models, training, and metrics}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Results}{3}{}\protected@file@percent }
+\newlabel{sec:results}{{IV}{3}{}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Preliminary legacy-recipe survey}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Main same-checkpoint benchmark}{3}{}\protected@file@percent }
+\newlabel{sec:main}{{\mbox  {IV-B}}{3}{}{subsection.4.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Same-checkpoint benchmark (\%): Acc$\pm $std, Protocol B folds. One checkpoint per model, trained on Original, tested on four inputs. Last two rows: label-free adaptation of the same checkpoint (Sec.~\ref {sec:protocols}); $^\dagger $mean over the four BatchNorm backbones, whose unadapted loss is $-3.98$/$-3.63$.}}{3}{}\protected@file@percent }
+\newlabel{tab:main}{{III}{3}{}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Protocol A (image-level; 10\% of its training half held out for validation) vs.\ Protocol B (subject-disjoint) accuracy for the Original input, same-checkpoint. All 24 model$\times $variant rows are in Supplementary Table~S1.}}{3}{}\protected@file@percent }
+\newlabel{tab:proto}{{IV}{3}{}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Subject-disjoint generalization}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Corrected/corrupted flips and native size}{3}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Corrected/corrupted counts under the same-checkpoint protocol, Protocol B, summed over 5 folds; Net = mean per-fold change; Sig.\ = folds (of 5) significant after Holm correction.}}{4}{}\protected@file@percent }
+\newlabel{tab:flips}{{V}{4}{}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Matched-domain retraining}{4}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Same-checkpoint accuracy by native short-side band, pooled over 6 backbones $\times $ 5 folds.}}{4}{}\protected@file@percent }
+\newlabel{fig:size}{{1}{4}{}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Recognizer inputs (after the final resize, padding removed) for two crops below 32 pixels that ResNet50 (fold 0) classifies correctly from Original and wrongly from both SR versions. Top: female, $31\times 42$ pixels; bottom: male, $24\times 28$ pixels. Of the 30 such crops in this fold, 27 are male crops predicted as female.}}{4}{}\protected@file@percent }
+\newlabel{fig:qual}{{2}{4}{}{figure.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-F}}Label-free adaptation}{4}{}\protected@file@percent }
+\newlabel{sec:adapt}{{\mbox  {IV-F}}{4}{}{subsection.4.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Discussion}{4}{}\protected@file@percent }
+\newlabel{sec:discussion}{{V}{4}{}{section.5}{}}
+\citation{emersic2017}
+\citation{markicevic2023}
+\citation{pei2021}
+\bibcite{nguyenquoc2020}{1}
+\bibcite{hoang2019earvn}{2}
+\bibcite{emersic2017}{3}
+\bibcite{pflug2012}{4}
+\bibcite{hassaballah2019}{5}
+\bibcite{lei2013}{6}
+\bibcite{khorsandi2013}{7}
+\bibcite{realesrgan}{8}
+\bibcite{swinir}{9}
+\bibcite{vgg}{10}
+\bibcite{mobilenetv2}{11}
+\bibcite{resnet}{12}
+\bibcite{efficientnet}{13}
+\bibcite{maxvit}{14}
+\bibcite{swintransformer}{15}
+\bibcite{dai2016}{16}
+\bibcite{pei2021}{17}
+\bibcite{grm2020}{18}
+\bibcite{saerens2002}{19}
+\bibcite{li2018adabn}{20}
+\bibcite{markicevic2023}{21}
+\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Matched-domain retraining: accuracy gap (pp) vs.\ the backbone's own Original-to-Original run (train and test on the same variant), Protocol B, mean over 5 folds; last row: 95\% CI of the fold-level mean gap.}}{5}{}\protected@file@percent }
+\newlabel{tab:matched}{{VI}{5}{}{table.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Conclusion}{5}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{VI}{5}{}{section.6}{}}
+\@writefile{toc}{\contentsline {section}{References}{5}{}\protected@file@percent }
+\gdef \@abspage@last{5}

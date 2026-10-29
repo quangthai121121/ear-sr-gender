@@ -107,11 +107,11 @@ def aggregate_table5():
         print(f"[table5] {raw_path} not found, skipping.")
         return
     df = pd.read_csv(raw_path)
-    # Protocol AV re-runs are reported separately and must not change the
-    # size of the published Holm family (Protocol A + B, all 3 variants).
-    df = df[~df["tag"].str.contains("_protoAV")]
+    # The paper's Table 5 covers Protocol B only; Protocol A/AV flips are not
+    # reported, so they stay out of the Holm family (6 models x 5 folds x 3).
+    df = df[df["tag"].str.contains("_protoB_")]
 
-    # Holm correction across ALL model x SR tests reported together.
+    # Holm correction across ALL Protocol B model x fold x variant tests.
     reject, p_adj, _, _ = multipletests(df["mcnemar_p"], method="holm")
     df["mcnemar_p_holm"] = p_adj
     df["significant_holm_0.05"] = reject

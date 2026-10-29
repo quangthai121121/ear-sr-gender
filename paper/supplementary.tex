@@ -1,0 +1,203 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{times}
+\usepackage[hidelinks]{hyperref}
+\renewcommand{\thetable}{S\arabic{table}}
+
+\title{Supplementary Material}
+\author{Thai Le Quang, Vinh Truong Hoang}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent This document supplements \emph{``Does Super-Resolution Improve Ear-Based Gender Classification? Controlled Evidence for Deployment Decisions''} (DASA'26). It contains three tables: Table~S1 extends Table~IV of the main paper to all input variants, Table~S2 reports the per-class metrics behind the recall and balanced-accuracy statements in Section~IV-B, and Table~S3 reports the label-free adaptation results behind Section~IV-F.
+
+\section*{S1. Protocol A vs.\ Protocol B, all model$\times$variant combinations}
+\noindent Table~IV of the main paper reports only the Original row of this comparison per backbone. Table~S1 gives the complete table for all 6 backbones $\times$ 4 input variants (24 rows): Protocol~A accuracy, Protocol~B accuracy and macro-F1 (mean $\pm$ std over 5 folds), and the accuracy gap in percentage points. All rows use the same-checkpoint protocol: each backbone is trained once on Original images of the respective protocol under the locked configuration and tested on all four inputs. Protocol~A holds out 10\% of its training half for early stopping; its test half is the same as in the legacy split.
+
+\bigskip
+
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}llrrrr@{}}
+\caption{Protocol A vs.\ Protocol B accuracy, same-checkpoint, all model$\times$variant combinations.}\label{tab:s1}\\
+\toprule
+Model & Variant & Proto.\,A (\%) & Proto.\,B (\%) & Proto.\,B macro-F1 (\%) & Gap (pp) \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+Model & Variant & Proto.\,A (\%) & Proto.\,B (\%) & Proto.\,B macro-F1 (\%) & Gap (pp) \\
+\midrule
+\endhead
+VGG19            & Original    & 93.16 & 90.74$\pm$0.87 & 90.09$\pm$1.07 & 2.42 \\
+VGG19            & Bicubic     & 93.12 & 90.70$\pm$0.90 & 90.04$\pm$1.10 & 2.43 \\
+VGG19            & Real-ESRGAN & 89.53 & 88.78$\pm$0.68 & 88.20$\pm$0.62 & 0.74 \\
+VGG19            & SwinIR      & 90.09 & 88.94$\pm$0.33 & 88.35$\pm$0.35 & 1.15 \\
+\addlinespace
+MobileNetV2      & Original    & 93.90 & 91.76$\pm$1.32 & 91.17$\pm$1.42 & 2.14 \\
+MobileNetV2      & Bicubic     & 93.60 & 91.71$\pm$1.21 & 91.10$\pm$1.31 & 1.89 \\
+MobileNetV2      & Real-ESRGAN & 89.64 & 88.16$\pm$1.38 & 87.70$\pm$1.35 & 1.48 \\
+MobileNetV2      & SwinIR      & 90.03 & 88.83$\pm$0.79 & 88.37$\pm$0.78 & 1.20 \\
+\addlinespace
+ResNet50         & Original    & 93.99 & 91.91$\pm$1.32 & 91.37$\pm$1.49 & 2.08 \\
+ResNet50         & Bicubic     & 93.62 & 91.83$\pm$1.36 & 91.27$\pm$1.53 & 1.78 \\
+ResNet50         & Real-ESRGAN & 90.01 & 88.86$\pm$2.13 & 88.40$\pm$2.15 & 1.15 \\
+ResNet50         & SwinIR      & 90.64 & 89.42$\pm$1.72 & 88.95$\pm$1.76 & 1.23 \\
+\addlinespace
+EfficientNet-B0  & Original    & 94.84 & 92.61$\pm$0.79 & 92.12$\pm$0.92 & 2.23 \\
+EfficientNet-B0  & Bicubic     & 94.76 & 92.58$\pm$0.81 & 92.08$\pm$0.96 & 2.18 \\
+EfficientNet-B0  & Real-ESRGAN & 90.27 & 86.17$\pm$4.48 & 85.83$\pm$4.32 & 4.10 \\
+EfficientNet-B0  & SwinIR      & 90.41 & 85.79$\pm$4.58 & 85.47$\pm$4.42 & 4.62 \\
+\addlinespace
+Swin-T           & Original    & 94.97 & 92.35$\pm$1.69 & 91.79$\pm$1.95 & 2.63 \\
+Swin-T           & Bicubic     & 94.90 & 92.33$\pm$1.73 & 91.77$\pm$1.99 & 2.57 \\
+Swin-T           & Real-ESRGAN & 94.69 & 90.87$\pm$1.82 & 90.38$\pm$1.80 & 3.81 \\
+Swin-T           & SwinIR      & 94.75 & 90.74$\pm$1.97 & 90.23$\pm$1.97 & 4.01 \\
+\addlinespace
+MaxViT-T         & Original    & 95.73 & 92.72$\pm$1.50 & 92.24$\pm$1.62 & 3.01 \\
+MaxViT-T         & Bicubic     & 95.67 & 92.77$\pm$1.38 & 92.29$\pm$1.48 & 2.90 \\
+MaxViT-T         & Real-ESRGAN & 93.83 & 89.87$\pm$2.23 & 89.48$\pm$2.15 & 3.95 \\
+MaxViT-T         & SwinIR      & 93.62 & 90.44$\pm$1.89 & 90.02$\pm$1.82 & 3.18 \\
+\bottomrule
+\end{longtable}
+
+\bigskip
+\noindent\textbf{Summary.} The Protocol~A$\to$B gap is positive for all 24 combinations (range 0.74--4.62 pp, mean 2.45 pp). The mean gap is similar across input variants (Original 2.42, Bicubic 2.29, Real-ESRGAN 2.54, SwinIR 2.56 pp), but it varies more across backbones for the SR inputs (0.74--4.62 pp) than for Original and Bicubic (1.78--3.01 pp), because the same-checkpoint SR penalty differs between protocols for some backbones. Early-stopping Protocol~A on its test half instead of the held-out split would have raised its Original accuracy by a further 0.5 pp on average. The inflation from image-level splitting is therefore not specific to one input variant. Absolute accuracies reported under an image-level split, as in the original EarVN1.0 gender study, should not be compared directly with subject-disjoint numbers, with or without super-resolution.
+
+\section*{S2. Per-class metrics under the same-checkpoint protocol}
+\noindent Table~S2 lists accuracy, macro-F1, balanced accuracy, and male and female recall for every backbone and input variant under Protocol~B (mean $\pm$ std over the 5 subject-disjoint folds; each backbone uses one Original-trained checkpoint per fold). The last three rows give the mean change versus Original over the six backbones, which are the values quoted in Section~IV-B of the main paper. Male recall falls and female recall rises for all six backbones under both Real-ESRGAN and SwinIR; under Bicubic, male recall falls for two backbones and female recall rises for one, with changes below 0.5 points.
+
+\bigskip
+{\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}llccccc@{}}
+\caption{Per-class metrics (\%) under the same-checkpoint protocol, Protocol B, mean $\pm$ std over 5 folds.}\label{tab:s2}\\
+\toprule
+Model & Variant & Accuracy & Macro-F1 & Bal.\ acc. & Recall (male) & Recall (female) \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+Model & Variant & Accuracy & Macro-F1 & Bal.\ acc. & Recall (male) & Recall (female) \\
+\midrule
+\endhead
+VGG19            & Original    & 90.74$\pm$0.87 & 90.09$\pm$1.07 & 89.78$\pm$1.53 & 93.73$\pm$1.81 & 85.83$\pm$4.58 \\
+VGG19            & Bicubic     & 90.70$\pm$0.90 & 90.04$\pm$1.10 & 89.75$\pm$1.57 & 93.67$\pm$1.77 & 85.82$\pm$4.62 \\
+VGG19            & Real-ESRGAN & 88.78$\pm$0.68 & 88.20$\pm$0.62 & 88.54$\pm$0.88 & 89.45$\pm$3.51 & 87.63$\pm$4.82 \\
+VGG19            & SwinIR      & 88.94$\pm$0.33 & 88.35$\pm$0.35 & 88.69$\pm$1.02 & 89.63$\pm$3.57 & 87.75$\pm$5.51 \\
+\addlinespace
+MobileNetV2      & Original    & 91.76$\pm$1.32 & 91.17$\pm$1.42 & 90.77$\pm$1.42 & 94.91$\pm$2.08 & 86.63$\pm$2.88 \\
+MobileNetV2      & Bicubic     & 91.71$\pm$1.21 & 91.10$\pm$1.31 & 90.63$\pm$1.35 & 95.16$\pm$1.80 & 86.10$\pm$2.74 \\
+MobileNetV2      & Real-ESRGAN & 88.16$\pm$1.38 & 87.70$\pm$1.35 & 88.56$\pm$1.11 & 86.80$\pm$2.84 & 90.32$\pm$2.23 \\
+MobileNetV2      & SwinIR      & 88.83$\pm$0.79 & 88.37$\pm$0.78 & 89.14$\pm$0.85 & 87.77$\pm$2.38 & 90.51$\pm$3.12 \\
+\addlinespace
+ResNet50         & Original    & 91.91$\pm$1.32 & 91.37$\pm$1.49 & 91.17$\pm$1.74 & 94.25$\pm$1.54 & 88.09$\pm$3.96 \\
+ResNet50         & Bicubic     & 91.83$\pm$1.36 & 91.27$\pm$1.53 & 91.00$\pm$1.75 & 94.44$\pm$1.47 & 87.56$\pm$3.78 \\
+ResNet50         & Real-ESRGAN & 88.86$\pm$2.13 & 88.40$\pm$2.15 & 89.15$\pm$1.79 & 87.91$\pm$3.51 & 90.38$\pm$1.82 \\
+ResNet50         & SwinIR      & 89.42$\pm$1.72 & 88.95$\pm$1.76 & 89.55$\pm$1.53 & 88.97$\pm$2.98 & 90.13$\pm$2.44 \\
+\addlinespace
+EfficientNet-B0  & Original    & 92.61$\pm$0.79 & 92.12$\pm$0.92 & 91.90$\pm$1.28 & 94.84$\pm$2.16 & 88.96$\pm$4.18 \\
+EfficientNet-B0  & Bicubic     & 92.58$\pm$0.81 & 92.08$\pm$0.96 & 91.85$\pm$1.39 & 94.88$\pm$2.17 & 88.81$\pm$4.48 \\
+EfficientNet-B0  & Real-ESRGAN & 86.17$\pm$4.48 & 85.83$\pm$4.32 & 87.36$\pm$3.26 & 82.29$\pm$8.60 & 92.42$\pm$2.75 \\
+EfficientNet-B0  & SwinIR      & 85.79$\pm$4.58 & 85.47$\pm$4.42 & 87.15$\pm$3.30 & 81.34$\pm$9.00 & 92.96$\pm$3.54 \\
+\addlinespace
+Swin-T           & Original    & 92.35$\pm$1.69 & 91.79$\pm$1.95 & 91.52$\pm$2.45 & 94.89$\pm$2.70 & 88.16$\pm$6.43 \\
+Swin-T           & Bicubic     & 92.33$\pm$1.73 & 91.77$\pm$1.99 & 91.49$\pm$2.49 & 94.94$\pm$2.73 & 88.03$\pm$6.51 \\
+Swin-T           & Real-ESRGAN & 90.87$\pm$1.82 & 90.38$\pm$1.80 & 90.65$\pm$1.70 & 91.47$\pm$5.19 & 89.82$\pm$6.12 \\
+Swin-T           & SwinIR      & 90.74$\pm$1.97 & 90.23$\pm$1.97 & 90.51$\pm$1.90 & 91.36$\pm$5.33 & 89.66$\pm$6.40 \\
+\addlinespace
+MaxViT-T         & Original    & 92.72$\pm$1.50 & 92.24$\pm$1.62 & 92.02$\pm$1.73 & 94.93$\pm$2.85 & 89.11$\pm$4.31 \\
+MaxViT-T         & Bicubic     & 92.77$\pm$1.38 & 92.29$\pm$1.48 & 92.09$\pm$1.58 & 94.92$\pm$2.70 & 89.26$\pm$4.03 \\
+MaxViT-T         & Real-ESRGAN & 89.87$\pm$2.23 & 89.48$\pm$2.15 & 90.31$\pm$1.61 & 88.39$\pm$4.86 & 92.22$\pm$3.20 \\
+MaxViT-T         & SwinIR      & 90.44$\pm$1.89 & 90.02$\pm$1.82 & 90.64$\pm$1.39 & 89.73$\pm$4.42 & 91.55$\pm$3.49 \\
+\midrule
+Mean $\Delta$ vs Original & Bicubic & $-0.03$ & $-0.04$ & $-0.06$ & $+0.08$ & $-0.20$ \\
+Mean $\Delta$ vs Original & Real-ESRGAN & $-3.23$ & $-3.13$ & $-2.10$ & $-6.88$ & $+2.67$ \\
+Mean $\Delta$ vs Original & SwinIR & $-2.99$ & $-2.90$ & $-1.92$ & $-6.46$ & $+2.63$ \\
+\bottomrule
+\end{longtable}
+}
+
+\section*{S3. Label-free adaptation of the same checkpoint}
+\noindent Table~S3 lists the results of adapting each Original-trained Protocol~B checkpoint to SR inputs without labels or retraining, as described in Section~III-C of the main paper. The adaptation set is each fold's validation images, used without labels. \emph{Threshold} shifts the female-minus-male logit margin so that the fraction of SR inputs predicted female equals the fraction the same checkpoint predicts on the Original versions of those images. \emph{AdaBN} re-estimates the BatchNorm statistics on the SR images and applies only to the four backbones with BatchNorm, so VGG19 and Swin-T have no AdaBN rows. $\Delta$Acc is the accuracy change versus the same checkpoint on Original inputs; all values are means over the 5 folds.
+
+Threshold recalibration improves on no adaptation in 53 of 60 backbone-fold-SR cases and AdaBN in 38 of 40. The remaining loss stays significant: fold-level 95\% confidence intervals of $\Delta$Acc are $[-1.92, -0.95]$ (Real-ESRGAN) and $[-1.67, -0.89]$ (SwinIR) for threshold recalibration, and $[-1.61, -0.76]$ and $[-0.87, -0.65]$ for AdaBN. Averaged over both SR methods and the six backbones, male recall rises from 87.93\% without adaptation to 93.31\% with threshold recalibration (Original: 94.59\%). The summary rows give the values quoted in Section~IV-F.
+
+\bigskip
+{\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}lllcccc@{}}
+\caption{Label-free adaptation under the same-checkpoint protocol, Protocol B, mean over 5 folds (\%).}\label{tab:s3}\\
+\toprule
+Model & SR & Method & $\Delta$Acc (pp) & Bal.\ acc. & Recall (male) & Recall (female) \\
+\midrule
+\endfirsthead
+\caption[]{(continued)}\\
+\toprule
+Model & SR & Method & $\Delta$Acc (pp) & Bal.\ acc. & Recall (male) & Recall (female) \\
+\midrule
+\endhead
+VGG19 & Real-ESRGAN & None & $-1.96$ & 88.54 & 89.45 & 87.63 \\
+VGG19 & Real-ESRGAN & Threshold & $-1.14$ & 88.58 & 92.78 & 84.39 \\
+VGG19 & SwinIR & None & $-1.79$ & 88.69 & 89.63 & 87.75 \\
+VGG19 & SwinIR & Threshold & $-1.01$ & 88.68 & 93.01 & 84.36 \\
+\addlinespace
+MobileNetV2 & Real-ESRGAN & None & $-3.60$ & 88.56 & 86.80 & 90.32 \\
+MobileNetV2 & Real-ESRGAN & Threshold & $-1.82$ & 88.86 & 93.37 & 84.34 \\
+MobileNetV2 & Real-ESRGAN & AdaBN & $-0.95$ & 89.71 & 94.29 & 85.13 \\
+MobileNetV2 & Real-ESRGAN & AdaBN+Thr. & $-1.05$ & 89.69 & 93.92 & 85.46 \\
+MobileNetV2 & SwinIR & None & $-2.93$ & 89.14 & 87.77 & 90.51 \\
+MobileNetV2 & SwinIR & Threshold & $-1.24$ & 89.51 & 93.75 & 85.26 \\
+MobileNetV2 & SwinIR & AdaBN & $-0.42$ & 90.39 & 94.36 & 86.41 \\
+MobileNetV2 & SwinIR & AdaBN+Thr. & $-0.54$ & 90.27 & 94.23 & 86.30 \\
+\addlinespace
+ResNet50 & Real-ESRGAN & None & $-3.05$ & 89.15 & 87.92 & 90.38 \\
+ResNet50 & Real-ESRGAN & Threshold & $-1.47$ & 89.61 & 93.01 & 86.21 \\
+ResNet50 & Real-ESRGAN & AdaBN & $-1.11$ & 89.90 & 93.60 & 86.20 \\
+ResNet50 & Real-ESRGAN & AdaBN+Thr. & $-1.23$ & 89.92 & 93.06 & 86.77 \\
+ResNet50 & SwinIR & None & $-2.49$ & 89.55 & 88.97 & 90.13 \\
+ResNet50 & SwinIR & Threshold & $-1.53$ & 89.70 & 92.47 & 86.94 \\
+ResNet50 & SwinIR & AdaBN & $-0.77$ & 90.31 & 93.72 & 86.90 \\
+ResNet50 & SwinIR & AdaBN+Thr. & $-0.95$ & 90.32 & 92.93 & 87.72 \\
+\addlinespace
+EfficientNet-B0 & Real-ESRGAN & None & $-6.44$ & 87.35 & 82.29 & 92.41 \\
+EfficientNet-B0 & Real-ESRGAN & Threshold & $-2.57$ & 89.17 & 92.79 & 85.55 \\
+EfficientNet-B0 & Real-ESRGAN & AdaBN & $-1.54$ & 90.15 & 93.96 & 86.33 \\
+EfficientNet-B0 & Real-ESRGAN & AdaBN+Thr. & $-1.58$ & 90.27 & 93.41 & 87.14 \\
+EfficientNet-B0 & SwinIR & None & $-6.82$ & 87.15 & 81.34 & 92.96 \\
+EfficientNet-B0 & SwinIR & Threshold & $-2.27$ & 89.52 & 92.91 & 86.12 \\
+EfficientNet-B0 & SwinIR & AdaBN & $-0.97$ & 90.89 & 93.99 & 87.78 \\
+EfficientNet-B0 & SwinIR & AdaBN+Thr. & $-1.01$ & 90.87 & 93.85 & 87.90 \\
+\addlinespace
+Swin-T & Real-ESRGAN & None & $-1.47$ & 90.65 & 91.47 & 89.82 \\
+Swin-T & Real-ESRGAN & Threshold & $-0.52$ & 91.03 & 94.28 & 87.78 \\
+Swin-T & SwinIR & None & $-1.61$ & 90.51 & 91.36 & 89.66 \\
+Swin-T & SwinIR & Threshold & $-0.58$ & 90.95 & 94.30 & 87.59 \\
+\addlinespace
+MaxViT-T & Real-ESRGAN & None & $-2.84$ & 90.31 & 88.40 & 92.22 \\
+MaxViT-T & Real-ESRGAN & Threshold & $-1.07$ & 91.02 & 93.61 & 88.42 \\
+MaxViT-T & Real-ESRGAN & AdaBN & $-1.13$ & 91.15 & 92.94 & 89.37 \\
+MaxViT-T & Real-ESRGAN & AdaBN+Thr. & $-0.91$ & 91.23 & 93.63 & 88.82 \\
+MaxViT-T & SwinIR & None & $-2.28$ & 90.64 & 89.73 & 91.55 \\
+MaxViT-T & SwinIR & Threshold & $-1.07$ & 91.07 & 93.43 & 88.71 \\
+MaxViT-T & SwinIR & AdaBN & $-0.89$ & 91.28 & 93.54 & 89.02 \\
+MaxViT-T & SwinIR & AdaBN+Thr. & $-0.72$ & 91.37 & 93.95 & 88.79 \\
+\midrule
+Mean, 6 backbones & Real-ESRGAN & None & $-3.23$ & 89.09 & 87.72 & 90.47 \\
+Mean, 6 backbones & Real-ESRGAN & Threshold & $-1.43$ & 89.71 & 93.31 & 86.12 \\
+Mean, 6 backbones & SwinIR & None & $-2.99$ & 89.28 & 88.13 & 90.42 \\
+Mean, 6 backbones & SwinIR & Threshold & $-1.28$ & 89.91 & 93.31 & 86.50 \\
+Mean, 4 BN backbones & Real-ESRGAN & None & $-3.98$ & 88.84 & 86.35 & 91.34 \\
+Mean, 4 BN backbones & Real-ESRGAN & AdaBN & $-1.18$ & 90.23 & 93.70 & 86.76 \\
+Mean, 4 BN backbones & SwinIR & None & $-3.63$ & 89.12 & 86.95 & 91.29 \\
+Mean, 4 BN backbones & SwinIR & AdaBN & $-0.76$ & 90.72 & 93.90 & 87.53 \\
+Original (reference) & --- & --- & --- & 91.19 & 94.59 & 87.79 \\
+\bottomrule
+\end{longtable}
+}
+
+\end{document}

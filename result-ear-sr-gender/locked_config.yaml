@@ -1,0 +1,10 @@
+optimizer: adamw
+lr: 0.0001
+wd: 0.0001
+epochs: 100
+batch_size: 32
+selected_from:
+  model: swin_t
+  fold: 0
+  grid_epochs: 8
+  best_val_macro_f1: 0.9203857541214887
