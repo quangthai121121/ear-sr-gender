@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1790575181.96265 "/Users/tql3308/Documents/ncs/paper_source_code/ear-sr-gender/paper/supplementary.tex" "supplementary.pdf" "supplementary" 1790575182.40644 0
-  "/Users/tql3308/Documents/ncs/paper_source_code/ear-sr-gender/paper/supplementary.tex" 1790575181.72557 14679 879e7978f72314806fff86076c063860 ""
+["pdflatex"] 1793293490.92877 "/Users/tql3308/Documents/ncs/paper_source_code/ear-sr-gender/paper/supplementary.tex" "supplementary.pdf" "supplementary" 1793293491.29508 0
+  "/Users/tql3308/Documents/ncs/paper_source_code/ear-sr-gender/paper/supplementary.tex" 1793293490.7617 14719 c22c4649b3da9e89d76a6267c18cb69c ""
   "/Users/tql3308/Library/texlive/2026basic/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1790237659 87169 29f1df089d8efd0e782eec8b8a4a409a ""
   "/Users/tql3308/Library/texmf/fonts/tfm/adobe/times/ptmb7t.tfm" 1136768653 2172 fd0c924230362ff848a33632ed45dc23 ""
   "/Users/tql3308/Library/texmf/fonts/tfm/adobe/times/ptmb8r.tfm" 1136768653 4524 6bce29db5bc272ba5f332261583fee9c ""
@@ -72,9 +72,9 @@
   "/usr/local/texlive/2026basic/texmf-dist/web2c/texmf.cnf" 1770478701 43630 e9fa012910491fe5ae08a72c3c2997a7 ""
   "/usr/local/texlive/2026basic/texmf-var/web2c/pdftex/pdflatex.fmt" 1784706655 2966192 b5fd3bf9f4049b7a270d0c59c14022dd ""
   "/usr/local/texlive/2026basic/texmf.cnf" 1772405582 628 bbc09d6d38872d53c11bb48dc9b14e88 ""
-  "supplementary.aux" 1790575182.38025 1784 fff00e05b6cf24f63115cd6c66db6705 "pdflatex"
-  "supplementary.out" 1790575182.34694 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
-  "supplementary.tex" 1790575181.72557 14679 879e7978f72314806fff86076c063860 ""
+  "supplementary.aux" 1793293491.27464 1784 fff00e05b6cf24f63115cd6c66db6705 "pdflatex"
+  "supplementary.out" 1793293491.24682 0 d41d8cd98f00b204e9800998ecf8427e "pdflatex"
+  "supplementary.tex" 1793293490.7617 14719 c22c4649b3da9e89d76a6267c18cb69c ""
   (generated)
   "supplementary.aux"
   "supplementary.log"

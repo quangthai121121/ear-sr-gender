@@ -7,13 +7,13 @@
 \renewcommand{\thetable}{S\arabic{table}}
 
 \title{Supplementary Material}
-\author{Thai Le Quang, Vinh Truong Hoang}
+\author{Thai Le Quang, Huy Nguyen Quoc, Dzi Lam Tran Tuan, Vinh Truong Hoang}
 \date{}
 
 \begin{document}
 \maketitle
 
-\noindent This document supplements \emph{``Does Super-Resolution Improve Ear-Based Gender Classification? Controlled Evidence for Deployment Decisions''} (DASA'26). It contains three tables: Table~S1 extends Table~IV of the main paper to all input variants, Table~S2 reports the per-class metrics behind the recall and balanced-accuracy statements in Section~IV-B, and Table~S3 reports the label-free adaptation results behind Section~IV-F.
+\noindent This document supplements \emph{``When Super-Resolution Hurts: A Controlled Study of Ear-Based Gender Classification under Deployment Constraints''} (DASA'26). It contains three tables: Table~S1 extends Table~IV of the main paper to all input variants, Table~S2 reports the per-class metrics behind the recall and balanced-accuracy statements in Section~IV-B, and Table~S3 reports the label-free adaptation results behind Section~IV-F.
 
 \section*{S1. Protocol A vs.\ Protocol B, all model$\times$variant combinations}
 \noindent Table~IV of the main paper reports only the Original row of this comparison per backbone. Table~S1 gives the complete table for all 6 backbones $\times$ 4 input variants (24 rows): Protocol~A accuracy, Protocol~B accuracy and macro-F1 (mean $\pm$ std over 5 folds), and the accuracy gap in percentage points. All rows use the same-checkpoint protocol: each backbone is trained once on Original images of the respective protocol under the locked configuration and tested on all four inputs. Protocol~A holds out 10\% of its training half for early stopping; its test half is the same as in the legacy split.

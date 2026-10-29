@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.7.22)  28 SEP 2026 12:59
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.7.22)  30 OCT 2026 00:04
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -283,13 +283,13 @@ Package rerunfilecheck Info: File `supplementary.out' has not changed.
 Here is how much of TeX's memory you used:
  8326 strings out of 469006
  129946 string characters out of 5454813
- 576218 words of memory out of 5000000
+ 576254 words of memory out of 5000000
  36946 multiletter control sequences out of 15000+600000
  648250 words of font info for 77 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
  75i,7n,79p,982b,620s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></Users/tql3308/Library/texmf/fonts/type1/urw/times/utmb8a.pfb></Users/tql3308/Library/texmf/fonts/type1/urw/times/utmr8a.pfb></Users/tql3308/Library/texmf/fonts/type1/urw/times/utmri8a.pfb>
-Output written on supplementary.pdf (4 pages, 107880 bytes).
+Output written on supplementary.pdf (4 pages, 108000 bytes).
 PDF statistics:
  79 PDF objects out of 1000 (max. 8388607)
  54 compressed objects within 1 object stream
