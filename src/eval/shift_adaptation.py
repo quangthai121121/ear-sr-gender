@@ -33,6 +33,7 @@ import copy
 import numpy as np
 import pandas as pd
 import torch
+import torch.multiprocessing
 import torch.nn as nn
 
 from src.config import CFG
@@ -46,6 +47,11 @@ torch.backends.cudnn.benchmark = True  # fixed 224x224 input shape throughout
 SR_VARIANTS = ["realesrgan", "swinir"]
 MALE, FEMALE = GENDER_TO_IDX["male"], GENDER_TO_IDX["female"]
 RAW_CSV_NAME = "table_shift_adaptation_raw.csv"
+# --known-prior results go to their own file so the paired-Original results stay untouched.
+RAW_KNOWN_PRIOR = "table_shift_adaptation_knownprior_raw.csv"
+
+# Many short-lived DataLoaders in one process can exhaust file descriptors.
+torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 @torch.no_grad()
@@ -138,8 +144,50 @@ def run_one(model_name, fold, variants, device, batch_size):
     return pd.DataFrame(rows)
 
 
-def save_rows(new: pd.DataFrame):
-    path = CFG.results_root / RAW_CSV_NAME
+def run_known_prior(model_name, fold, variants, device, batch_size):
+    """Threshold recalibration without paired Original images: the target
+    female prediction rate is the female fraction of the fold's TRAINING
+    labels (a class prior known at deployment), instead of the rate the
+    checkpoint predicts on the Original versions of the val images."""
+    tag = f"{model_name}_protoB_fold{fold}"
+    model, ckpt = load_checkpoint(tag)
+    if ckpt.get("retrain", False):
+        raise ValueError(f"{tag} is a matched-domain checkpoint; expected same-checkpoint.")
+    split_csv = CFG.protocol_b_csv(fold)
+    split = pd.read_csv(split_csv)
+    train = split[split["split"] == "train"]
+    target_rate = float((train["gender"] == "female").mean())
+
+    test_orig, y_orig = collect_margins(model, split_csv, "test", "orig", device, batch_size)
+    rows = [dict(variant="orig", method="none", bias=0.0, **score(test_orig, y_orig))]
+    for variant in variants:
+        test_m, y = collect_margins(model, split_csv, "test", variant, device, batch_size)
+        val_m, _ = collect_margins(model, split_csv, "val", variant, device, batch_size)
+        b = matching_bias(val_m, target_rate)
+        rows.append(dict(variant=variant, method="none", bias=0.0, **score(test_m, y)))
+        rows.append(dict(variant=variant, method="prior_known", bias=b, **score(test_m, y, b)))
+
+        m_bn = adabn(model, split_csv, "val", variant, device, batch_size)
+        if m_bn is not None:
+            test_bn, y_bn = collect_margins(m_bn, split_csv, "test", variant, device, batch_size)
+            val_bn, _ = collect_margins(m_bn, split_csv, "val", variant, device, batch_size)
+            b_bn = matching_bias(val_bn, target_rate)
+            rows.append(dict(variant=variant, method="adabn+prior_known", bias=b_bn,
+                             **score(test_bn, y_bn, b_bn)))
+            del m_bn
+
+    for r in rows:
+        r.update(tag=tag, model=model_name, fold=fold, n_test=len(y_orig),
+                 val_orig_female_rate=target_rate)
+        print(f"  {tag:32s} {r['variant']:10s} {r['method']:18s} "
+              f"acc={r['accuracy']:.4f} bal={r['balanced_accuracy']:.4f} "
+              f"recM={r['recall_male']:.3f} recF={r['recall_female']:.3f} "
+              f"femRate={r['female_pred_rate']:.3f} target={target_rate:.3f}")
+    return pd.DataFrame(rows)
+
+
+def save_rows(new: pd.DataFrame, name: str = RAW_CSV_NAME):
+    path = CFG.results_root / name
     if path.exists():
         old = pd.read_csv(path)
         new = pd.concat([old[~old["tag"].isin(new["tag"].unique())], new], ignore_index=True)
@@ -150,8 +198,8 @@ def save_rows(new: pd.DataFrame):
     print(f"[shift_adaptation] wrote {path}")
 
 
-def summarize():
-    path = CFG.results_root / RAW_CSV_NAME
+def summarize(name: str = RAW_CSV_NAME):
+    path = CFG.results_root / name
     df = pd.read_csv(path)
     orig = df[df["variant"] == "orig"].set_index(["model", "fold"])["accuracy"]
     sr = df[df["variant"] != "orig"].copy()
@@ -165,7 +213,7 @@ def summarize():
         print(t.round(2).to_markdown())
     print("\nMean delta_pp over models (only models present for every method in that column):")
     print(sr.groupby(["variant", "method"])["delta_pp"].mean().unstack("method").round(2).to_markdown())
-    out = CFG.results_root / "table_shift_adaptation.csv"
+    out = CFG.results_root / name.replace("_raw", "")
     (sr.groupby(["model", "variant", "method"])
        [["delta_pp", "accuracy", "balanced_accuracy", "recall_male", "recall_female"]]
        .agg(["mean", "std"]).to_csv(out))
@@ -181,10 +229,15 @@ def main():
                      choices=["bicubic", "realesrgan", "swinir"])
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--summarize", action="store_true", help="only aggregate existing raw CSV")
+    ap.add_argument("--known-prior", action="store_true",
+                     help="recalibrate to the training-label female fraction instead of the "
+                          "Original prediction rate (no paired Original images needed); "
+                          "results go to " + RAW_KNOWN_PRIOR)
     args = ap.parse_args()
+    raw_name = RAW_KNOWN_PRIOR if args.known_prior else RAW_CSV_NAME
 
     if args.summarize:
-        summarize()
+        summarize(raw_name)
         return
 
     CFG.ensure_dirs()
@@ -198,8 +251,9 @@ def main():
 
     for model_name, fold in jobs:
         print(f"[shift_adaptation] {model_name} fold {fold}")
-        save_rows(run_one(model_name, fold, args.variants, device, args.batch_size))
-    summarize()
+        run = run_known_prior if args.known_prior else run_one
+        save_rows(run(model_name, fold, args.variants, device, args.batch_size), raw_name)
+    summarize(raw_name)
 
 
 if __name__ == "__main__":
